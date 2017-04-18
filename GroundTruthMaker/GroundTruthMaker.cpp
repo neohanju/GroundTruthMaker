@@ -1,6 +1,10 @@
-
-// GroundTruthMaker.cpp : Defines the class behaviors for the application.
-//
+/******************************************************************************
+* Title        : GroundTruthMaker.cpp
+* Author       : Haanju Yoo
+* Initial Date : 2017.04.19
+* Version Num. : 0.9
+* Description  : Application implementation
+******************************************************************************/
 
 #include "stdafx.h"
 #include "GroundTruthMaker.h"
@@ -12,13 +16,10 @@
 
 
 // CGroundTruthMakerApp
-
 BEGIN_MESSAGE_MAP(CGroundTruthMakerApp, CWinApp)
 	ON_COMMAND(ID_HELP, &CWinApp::OnHelp)
 END_MESSAGE_MAP()
 
-
-// CGroundTruthMakerApp construction
 
 CGroundTruthMakerApp::CGroundTruthMakerApp()
 {
@@ -30,12 +31,8 @@ CGroundTruthMakerApp::CGroundTruthMakerApp()
 }
 
 
-// The one and only CGroundTruthMakerApp object
-
 CGroundTruthMakerApp theApp;
 
-
-// CGroundTruthMakerApp initialization
 
 BOOL CGroundTruthMakerApp::InitInstance()
 {
@@ -89,7 +86,6 @@ BOOL CGroundTruthMakerApp::InitInstance()
 		TRACE(traceAppMsg, 0, "Warning: if you are using MFC controls on the dialog, you cannot #define _AFX_NO_MFC_CONTROLS_IN_DIALOGS.\n");
 	}
 
-	// Delete the shell manager created above.
 	if (pShellManager != NULL)
 	{
 		delete pShellManager;
@@ -99,8 +95,6 @@ BOOL CGroundTruthMakerApp::InitInstance()
 	ControlBarCleanUp();
 #endif
 
-	// Since the dialog has been closed, return FALSE so that we exit the
-	//  application, rather than start the application's message pump.
 	return FALSE;
 }
 
