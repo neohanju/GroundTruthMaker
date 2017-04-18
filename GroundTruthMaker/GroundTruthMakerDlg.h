@@ -66,4 +66,5 @@ public:
 	afx_msg void OnDestroy();
 	afx_msg void OnBnClickedButtonNext();
 	afx_msg void OnBnClickedButtonPrev();
+	afx_msg void OnNMReleasedcaptureSliderVideo(NMHDR *pNMHDR, LRESULT *pResult);
 };

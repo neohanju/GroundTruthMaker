@@ -76,6 +76,7 @@ BEGIN_MESSAGE_MAP(CGroundTruthMakerDlg, CDialogEx)
 	ON_WM_DESTROY()
 	ON_BN_CLICKED(IDC_BUTTON_NEXT, &CGroundTruthMakerDlg::OnBnClickedButtonNext)
 	ON_BN_CLICKED(IDC_BUTTON_PREV, &CGroundTruthMakerDlg::OnBnClickedButtonPrev)
+	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_VIDEO, &CGroundTruthMakerDlg::OnNMReleasedcaptureSliderVideo)
 END_MESSAGE_MAP()
 
 
@@ -187,9 +188,7 @@ void CGroundTruthMakerDlg::OnBnClickedButtonLoad()
 		CT2CA pszConvertedAnsiString(strPathName);
 		this->OpenVideo(std::string(pszConvertedAnsiString));
 	}
-
-	this->ReadFrame();
-	this->ShowFrame();
+	this->ReadFrame();	
 }
 
 
@@ -260,6 +259,8 @@ bool CGroundTruthMakerDlg::ReadFrame(int position)
 
 	// TODO: display time
 	//SetDlgItemText(IDC_STATIC_FI_TIME, buff);
+
+	this->ShowFrame();
 
 	return true;
 }
@@ -397,12 +398,18 @@ void CGroundTruthMakerDlg::ShowFrame()
 
 void CGroundTruthMakerDlg::OnBnClickedButtonNext()
 {
-	this->ReadFrame();
-	this->ShowFrame();
+	this->ReadFrame();	
 }
 
 void CGroundTruthMakerDlg::OnBnClickedButtonPrev()
 {
 	this->ReadFrame(m_nCurVideoFrame - 1);
-	this->ShowFrame();
+}
+
+
+void CGroundTruthMakerDlg::OnNMReleasedcaptureSliderVideo(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	int nPos = m_ctrVideoSlider.GetPos();
+	this->ReadFrame(nPos);
+	*pResult = 0;
 }
