@@ -114,11 +114,11 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(OPENCV_310)\build\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Opencv\opencv\build\include;D:\Opencv\opencv\build\include\opencv;D:\Opencv\opencv\build\include\opencv2</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalLibraryDirectories>$(OPENCV_310)\build\x64\vc14\lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>D:\Opencv\opencv\build\x64\vc14\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>opencv_world310d.lib</AdditionalDependencies>
     </Link>
     <Midl>

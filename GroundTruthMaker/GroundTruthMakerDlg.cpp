@@ -77,6 +77,18 @@ BEGIN_MESSAGE_MAP(CGroundTruthMakerDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_NEXT, &CGroundTruthMakerDlg::OnBnClickedButtonNext)
 	ON_BN_CLICKED(IDC_BUTTON_PREV, &CGroundTruthMakerDlg::OnBnClickedButtonPrev)
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_VIDEO, &CGroundTruthMakerDlg::OnNMReleasedcaptureSliderVideo)
+	ON_BN_CLICKED(IDC_BUTTON1, &CGroundTruthMakerDlg::OnBnClickedButton1)
+	ON_BN_CLICKED(IDC_BUTTON2, &CGroundTruthMakerDlg::OnBnClickedButton2)
+	ON_WM_MOUSEMOVE()
+	ON_WM_LBUTTONDOWN()
+	ON_WM_LBUTTONUP()
+	ON_BN_CLICKED(IDC_CHECK1, &CGroundTruthMakerDlg::OnClickedCheck1)
+	ON_BN_CLICKED(IDC_CHECK_HEAD, &CGroundTruthMakerDlg::OnClickedCheckHead)
+	ON_BN_CLICKED(IDC_HAND_L, &CGroundTruthMakerDlg::OnBnClickedHandL)
+	ON_BN_CLICKED(IDC_HAND_R, &CGroundTruthMakerDlg::OnClickedHandR)
+	ON_BN_CLICKED(IDC_FOOT_L, &CGroundTruthMakerDlg::OnClickedFootL)
+	ON_BN_CLICKED(IDC_FOOT_R, &CGroundTruthMakerDlg::OnClickedFootR)
+	ON_BN_CLICKED(IDC_CHECK2, &CGroundTruthMakerDlg::OnClickedCheck2)
 END_MESSAGE_MAP()
 
 
@@ -141,6 +153,7 @@ void CGroundTruthMakerDlg::OnPaint()
 	if (IsIconic())
 	{
 		CPaintDC dc(this); // device context for painting
+
 
 		SendMessage(WM_ICONERASEBKGND, reinterpret_cast<WPARAM>(dc.GetSafeHdc()), 0);
 
@@ -412,4 +425,181 @@ void CGroundTruthMakerDlg::OnNMReleasedcaptureSliderVideo(NMHDR *pNMHDR, LRESULT
 	int nPos = m_ctrVideoSlider.GetPos();
 	this->ReadFrame(nPos);
 	*pResult = 0;
+}
+
+
+void CGroundTruthMakerDlg::OnBnClickedButton1()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	m_Cursor = TRUE;
+}
+
+
+void CGroundTruthMakerDlg::OnBnClickedButton2()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	m_Cursor = FALSE;
+}
+
+
+void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
+{
+	// TODO: 여기에 메시지 처리기 코드를 추가 및/또는 기본값을 호출합니다.
+	CRect rect;
+	CRect FrameRect;
+	CString str;
+
+	//m_csVideoFrame.GetClientRect(&FrameRect);    // 사진 나오는 부분 크기 받아오는 코드(맞나? 확인하고 이거 쓸건지 아래꺼 쓸건지 정하기)
+	GetDlgItem(IDC_VIEWER)->GetWindowRect(&rect); //사진 나오는 부분 바깥에 출력해주는 viewer 크기 전부다 받아오는 코드
+	ScreenToClient(&rect);
+
+	if ((m_Cursor == TRUE) && (point.x >= rect.left) && (point.x <= rect.right) && (point.y >= rect.top) && (point.y <= rect.bottom) )
+	{
+		SetCursor(::LoadCursor(NULL, IDC_CROSS));
+		str.Format(_T("X = %d , Y = %d"),point.x,point.y);
+		SetDlgItemText(IDC_EDIT_ID, str);
+		str.Format(_T("rect_right = %d, rect_left = %d"), rect.right, rect.left);
+		SetDlgItemText(IDC_EDIT_CLASS, str);
+	}
+	else
+	{
+		SetCursor(::LoadCursor(NULL, IDC_ARROW));
+	}
+
+	CDialogEx::OnMouseMove(nFlags, point);
+}
+
+
+
+
+void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
+{
+	CClientDC dc(this);
+	CString str_x,str_y;
+
+	// TODO: 여기에 메시지 처리기 코드를 추가 및/또는 기본값을 호출합니다.
+	if (m_Cursor == TRUE ) 
+	{
+	
+		switch (check_box_part)
+		{
+			case 1:
+				str_x.Format(_T("%d"), point.x);
+				str_y.Format(_T("%d"), point.y);
+				SetDlgItemText(IDC_EDIT_HEAD_X, str_x);
+				SetDlgItemText(IDC_EDIT_HEAD_Y, str_y);
+				break;
+
+			case 2:
+				str_x.Format(_T("%d"), point.x);
+				str_y.Format(_T("%d"), point.y);
+				SetDlgItemText(IDC_EDIT_HAND_L_X, str_x);
+				SetDlgItemText(IDC_EDIT_HAND_L_Y, str_y);
+				break;
+
+			case 3:
+				str_x.Format(_T("%d"), point.x);
+				str_y.Format(_T("%d"), point.y);
+				SetDlgItemText(IDC_EDIT_HAND_R_X, str_x);
+				SetDlgItemText(IDC_EDIT_HAND_R_Y, str_y);
+				break;
+
+			case 4:
+				str_x.Format(_T("%d"), point.x);
+				str_y.Format(_T("%d"), point.y);
+				SetDlgItemText(IDC_EDIT_FOOT_L_X, str_x);
+				SetDlgItemText(IDC_EDIT_FOOT_L_Y, str_y);
+				break;
+
+			case 5:
+				str_x.Format(_T("%d"), point.x);
+				str_y.Format(_T("%d"), point.y);
+				SetDlgItemText(IDC_EDIT_FOOT_R_X, str_x);
+				SetDlgItemText(IDC_EDIT_FOOT_R_Y, str_y);
+				break;
+
+			case 6:
+				str_x.Format(_T("%d"), point.x);
+				str_y.Format(_T("%d"), point.y);
+				SetDlgItemText(IDC_EDIT_BB_TOP, str_x);
+				SetDlgItemText(IDC_EDIT_BB_LEFT, str_y);
+				break;
+
+			case 7:
+				str_x.Format(_T("%d"), point.x);
+				str_y.Format(_T("%d"), point.y);
+				SetDlgItemText(IDC_EDIT_BB_BOTTOM, str_x);
+				SetDlgItemText(IDC_EDIT_BB_RIGHT, str_y);
+				break;
+
+			// 이런식으로 좌표 받는게 맞는 방법일지? 다른 방법은 없는지?
+		}
+
+
+		
+
+	}
+
+	CDialogEx::OnLButtonDown(nFlags, point);
+}
+
+
+
+void CGroundTruthMakerDlg::OnLButtonUp(UINT nFlags, CPoint point)
+{
+	// TODO: 여기에 메시지 처리기 코드를 추가 및/또는 기본값을 호출합니다.
+
+	CDialogEx::OnLButtonUp(nFlags, point);
+}
+
+
+void CGroundTruthMakerDlg::OnClickedCheck1()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	check_box_part = 6;
+
+}
+
+
+void CGroundTruthMakerDlg::OnClickedCheckHead()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	check_box_part = 1;
+}
+
+
+void CGroundTruthMakerDlg::OnBnClickedHandL()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	check_box_part = 2;
+}
+
+
+void CGroundTruthMakerDlg::OnClickedHandR()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	check_box_part = 3;
+}
+
+
+void CGroundTruthMakerDlg::OnClickedFootL()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	check_box_part = 4;
+}
+
+
+
+
+void CGroundTruthMakerDlg::OnClickedFootR()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	check_box_part = 5;
+}
+
+
+void CGroundTruthMakerDlg::OnClickedCheck2()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+	check_box_part = 7;
 }

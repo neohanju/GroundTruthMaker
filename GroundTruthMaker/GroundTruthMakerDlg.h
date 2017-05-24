@@ -47,6 +47,9 @@ protected:
 	//---------------------------------------------------------------------
 	// VARIABLES
 	//---------------------------------------------------------------------
+	bool m_Cursor;
+	bool check_box_1 = FALSE;
+	int check_box_part;
 protected:
 	HICON m_hIcon;
 
@@ -67,4 +70,16 @@ public:
 	afx_msg void OnBnClickedButtonNext();
 	afx_msg void OnBnClickedButtonPrev();
 	afx_msg void OnNMReleasedcaptureSliderVideo(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnBnClickedButton1();
+	afx_msg void OnBnClickedButton2();
+	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnClickedCheck1();
+	afx_msg void OnClickedCheckHead();
+	afx_msg void OnBnClickedHandL();
+	afx_msg void OnClickedHandR();
+	afx_msg void OnClickedFootL();
+	afx_msg void OnClickedFootR();
+	afx_msg void OnClickedCheck2();
 };
