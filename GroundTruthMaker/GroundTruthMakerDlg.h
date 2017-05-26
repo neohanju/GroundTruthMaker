@@ -50,6 +50,7 @@ protected:
 	bool m_Cursor;
 	bool check_box_1 = FALSE;
 	int check_box_part;
+	int top, bottom, right, left;
 protected:
 	HICON m_hIcon;
 

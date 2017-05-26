@@ -89,6 +89,8 @@ BEGIN_MESSAGE_MAP(CGroundTruthMakerDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_FOOT_L, &CGroundTruthMakerDlg::OnClickedFootL)
 	ON_BN_CLICKED(IDC_FOOT_R, &CGroundTruthMakerDlg::OnClickedFootR)
 	ON_BN_CLICKED(IDC_CHECK2, &CGroundTruthMakerDlg::OnClickedCheck2)
+//	ON_NOTIFY(UDN_DELTAPOS, IDC_SPIN1, &CGroundTruthMakerDlg::OnDeltaposSpin1)
+//	ON_NOTIFY(UDN_DELTAPOS, IDC_SPIN2, &CGroundTruthMakerDlg::OnDeltaposSpin2)
 END_MESSAGE_MAP()
 
 
@@ -127,6 +129,9 @@ BOOL CGroundTruthMakerDlg::OnInitDialog()
 	m_ctrVideoSlider.SetRangeMin(0);
 	m_ctrVideoSlider.SetLineSize(1);    // moving interval of keyboard direction keys
 	m_ctrVideoSlider.SetPageSize(100);  // moving interval of page up/down keys 
+
+
+
 
 	return TRUE;
 }
@@ -484,6 +489,7 @@ void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 		switch (check_box_part)
 		{
 			case 1:
+				
 				str_x.Format(_T("%d"), point.x);
 				str_y.Format(_T("%d"), point.y);
 				SetDlgItemText(IDC_EDIT_HEAD_X, str_x);
@@ -519,6 +525,8 @@ void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 				break;
 
 			case 6:
+				left = point.x;
+				top = point.y;
 				str_x.Format(_T("%d"), point.x);
 				str_y.Format(_T("%d"), point.y);
 				SetDlgItemText(IDC_EDIT_BB_TOP, str_x);
@@ -526,10 +534,31 @@ void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 				break;
 
 			case 7:
+				//CString str_top, str_left;
+				int center_x, center_y, width, height;
+				right = point.x;
+				bottom = point.y;
 				str_x.Format(_T("%d"), point.x);
 				str_y.Format(_T("%d"), point.y);
 				SetDlgItemText(IDC_EDIT_BB_BOTTOM, str_x);
 				SetDlgItemText(IDC_EDIT_BB_RIGHT, str_y);
+
+				center_x = (left + right) / 2;
+				center_y = (top + bottom) / 2;
+				str_x.Format(_T("%d"), center_x);
+				str_y.Format(_T("%d"), center_y);
+				SetDlgItemText(IDC_EDIT_BB_CENTER_X, str_x);
+				SetDlgItemText(IDC_EDIT_BB_CENTER_Y, str_y);
+
+				width = right - left;
+				height = bottom - top;
+				str_x.Format(_T("%d"), width);
+				str_y.Format(_T("%d"), height);
+				SetDlgItemText(IDC_EDIT_BB_WIDTH, str_x);
+				SetDlgItemText(IDC_EDIT_BB_HEIGHT, str_y);
+
+				//GetDlgItem(IDC_EDIT_BB_TOP)->GetWindowText(str_top);
+				//GetDlgItem(IDC_EDIT_BB_LEFT)->GetWindowText(str_left);
 				break;
 
 			// 이런식으로 좌표 받는게 맞는 방법일지? 다른 방법은 없는지?
@@ -603,3 +632,5 @@ void CGroundTruthMakerDlg::OnClickedCheck2()
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
 	check_box_part = 7;
 }
+
+
