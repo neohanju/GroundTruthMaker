@@ -11,11 +11,90 @@
 #include "GroundTruthMaker.h"
 #include "GroundTruthMakerDlg.h"
 #include "afxdialogex.h"
+#include <iostream>
+#include <fstream>
+#include <iomanip>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
+/*
+bool CGTMetadata::writefile(const CString strPath)
+{
+	try
+	{
+		std::ofstream outputFile;
+		outputFile.open(strPath);
+		outputFile << (int)vecObjects.size() << "\n";
+		for (int i = 0; i < (int)vecObjects.size(); i++)
+		{
+			outputFile << vecObjects[i].id << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].objectBoxX << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].objectBoxY << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].objectBoxW << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].objectBoxH << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].headX << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].headY << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].rightHandX << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].rightHandY << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].leftHandX << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].leftHandY << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].rightFootX << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].rightFootY << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].leftFootX << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].leftFootY << "\n";
 
+
+		}
+		outputFile.close();
+	}
+	catch (int e)
+	{
+		return false;
+	}
+	return true;
+}
+
+bool CGTMetadata::readfile(const CString strPath)
+{
+	CString strCurLine;
+	try
+	{
+		CStdioFile file(strPath, CFile::modeRead | CFile::typeText);
+		file.ReadString(strCurLine);
+		this->numObject = _ttoi(strCurLine);
+		while (true)
+		{
+			if (!file.ReadString(strCurLine)) { break; }
+			CGTObjectInfo newObject;
+			int curPos = 0;
+			CString restoken = strCurLine.Tokenize(_T(" "), curPos);
+			newObject.id = _ttoi(restoken);
+
+			restoken = strCurLine.Tokenize(_T(" "), curPos);
+			newObject.objectBoxX = _ttoi(restoken);
+
+			restoken = strCurLine.Tokenize(_T(" "), curPos);
+			newObject.objectBoxY = _ttoi(restoken);
+
+			restoken = strCurLine.Tokenize(_T(" "), curPos);
+			newObject.objectBoxW = _ttoi(restoken);
+
+			restoken = strCurLine.Tokenize(_T(" "), curPos);
+			newObject.objectBoxH = _ttoi(restoken);
+
+			this->vecObjects.push_back(newObject);
+		}
+		file.Close();
+		assert(this->numObject == (int)this->vecObjects.size());
+	}
+	catch (int e)
+	{
+		return false;
+	}
+	return true;
+}
+*/
 
 class CAboutDlg : public CDialogEx
 {
@@ -44,6 +123,7 @@ CAboutDlg::CAboutDlg() : CDialogEx(IDD_ABOUTBOX)
 void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+
 }
 
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
@@ -55,6 +135,7 @@ END_MESSAGE_MAP()
 //=========================================================================
 CGroundTruthMakerDlg::CGroundTruthMakerDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(IDD_GROUNDTRUTHMAKER_DIALOG, pParent)
+	, m_radio(9)                                                             //radio버튼이 초기화 되어있어서 잘못된 data들어오는걸 막기위함(9는 임의로 넣은거라 수정이 필요해 보임)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -65,6 +146,7 @@ void CGroundTruthMakerDlg::DoDataExchange(CDataExchange* pDX)
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_VIEWER, m_csVideoFrame);
 	DDX_Control(pDX, IDC_SLIDER_VIDEO, m_ctrVideoSlider);
+	DDX_Radio(pDX, IDC_RADIO_BOX, (int&)m_radio);
 }
 
 
@@ -77,20 +159,10 @@ BEGIN_MESSAGE_MAP(CGroundTruthMakerDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_NEXT, &CGroundTruthMakerDlg::OnBnClickedButtonNext)
 	ON_BN_CLICKED(IDC_BUTTON_PREV, &CGroundTruthMakerDlg::OnBnClickedButtonPrev)
 	ON_NOTIFY(NM_RELEASEDCAPTURE, IDC_SLIDER_VIDEO, &CGroundTruthMakerDlg::OnNMReleasedcaptureSliderVideo)
-	ON_BN_CLICKED(IDC_BUTTON1, &CGroundTruthMakerDlg::OnBnClickedButton1)
-	ON_BN_CLICKED(IDC_BUTTON2, &CGroundTruthMakerDlg::OnBnClickedButton2)
 	ON_WM_MOUSEMOVE()
 	ON_WM_LBUTTONDOWN()
 	ON_WM_LBUTTONUP()
-	ON_BN_CLICKED(IDC_CHECK1, &CGroundTruthMakerDlg::OnClickedCheck1)
-	ON_BN_CLICKED(IDC_CHECK_HEAD, &CGroundTruthMakerDlg::OnClickedCheckHead)
-	ON_BN_CLICKED(IDC_HAND_L, &CGroundTruthMakerDlg::OnBnClickedHandL)
-	ON_BN_CLICKED(IDC_HAND_R, &CGroundTruthMakerDlg::OnClickedHandR)
-	ON_BN_CLICKED(IDC_FOOT_L, &CGroundTruthMakerDlg::OnClickedFootL)
-	ON_BN_CLICKED(IDC_FOOT_R, &CGroundTruthMakerDlg::OnClickedFootR)
-	ON_BN_CLICKED(IDC_CHECK2, &CGroundTruthMakerDlg::OnClickedCheck2)
-//	ON_NOTIFY(UDN_DELTAPOS, IDC_SPIN1, &CGroundTruthMakerDlg::OnDeltaposSpin1)
-//	ON_NOTIFY(UDN_DELTAPOS, IDC_SPIN2, &CGroundTruthMakerDlg::OnDeltaposSpin2)
+	ON_CONTROL_RANGE(BN_CLICKED,IDC_RADIO_BOX,IDC_RADIO_RIGHT_FOOT, &CGroundTruthMakerDlg::OnClickedRadioBox)
 END_MESSAGE_MAP()
 
 
@@ -130,6 +202,8 @@ BOOL CGroundTruthMakerDlg::OnInitDialog()
 	m_ctrVideoSlider.SetLineSize(1);    // moving interval of keyboard direction keys
 	m_ctrVideoSlider.SetPageSize(100);  // moving interval of page up/down keys 
 
+	CButton* pButton = (CButton*)GetDlgItem(IDC_RADIO_BOX); //라디오 버튼 처음에 선택 안되어있게 하기위함.
+	pButton->SetCheck(false);					
 
 
 
@@ -203,6 +277,7 @@ void CGroundTruthMakerDlg::OnBnClickedButtonLoad()
 	if (IDOK == dlg.DoModal())
 	{
 		CString strPathName = dlg.GetPathName();
+		strMetadataFilePath = strPathName;
 		CT2CA pszConvertedAnsiString(strPathName);
 		this->OpenVideo(std::string(pszConvertedAnsiString));
 	}
@@ -410,13 +485,17 @@ void CGroundTruthMakerDlg::ShowFrame()
 	m_pVideoFrameImage->ReleaseDC();
 	delete m_pVideoFrameImage;
 	m_pVideoFrameImage = nullptr;
+	m_Cursor = TRUE;                                               //마우스 커서 바꾸기 위함.. 고려해보고 뺄 수 잇으면 빼는게 좋을듯!
+
+
 }
 
 
 
 void CGroundTruthMakerDlg::OnBnClickedButtonNext()
 {
-	this->ReadFrame();	
+	//this->SaveMetadata();
+	this->ReadFrame();
 }
 
 void CGroundTruthMakerDlg::OnBnClickedButtonPrev()
@@ -433,18 +512,6 @@ void CGroundTruthMakerDlg::OnNMReleasedcaptureSliderVideo(NMHDR *pNMHDR, LRESULT
 }
 
 
-void CGroundTruthMakerDlg::OnBnClickedButton1()
-{
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
-	m_Cursor = TRUE;
-}
-
-
-void CGroundTruthMakerDlg::OnBnClickedButton2()
-{
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
-	m_Cursor = FALSE;
-}
 
 
 void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
@@ -454,7 +521,6 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 	CRect FrameRect;
 	CString str;
 
-	//m_csVideoFrame.GetClientRect(&FrameRect);    // 사진 나오는 부분 크기 받아오는 코드(맞나? 확인하고 이거 쓸건지 아래꺼 쓸건지 정하기)
 	GetDlgItem(IDC_VIEWER)->GetWindowRect(&rect); //사진 나오는 부분 바깥에 출력해주는 viewer 크기 전부다 받아오는 코드
 	ScreenToClient(&rect);
 
@@ -479,95 +545,8 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 
 void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 {
-	CClientDC dc(this);
-	CString str_x,str_y;
-
 	// TODO: 여기에 메시지 처리기 코드를 추가 및/또는 기본값을 호출합니다.
-	if (m_Cursor == TRUE ) 
-	{
-	
-		switch (check_box_part)
-		{
-			case 1:
-				
-				str_x.Format(_T("%d"), point.x);
-				str_y.Format(_T("%d"), point.y);
-				SetDlgItemText(IDC_EDIT_HEAD_X, str_x);
-				SetDlgItemText(IDC_EDIT_HEAD_Y, str_y);
-				break;
-
-			case 2:
-				str_x.Format(_T("%d"), point.x);
-				str_y.Format(_T("%d"), point.y);
-				SetDlgItemText(IDC_EDIT_HAND_L_X, str_x);
-				SetDlgItemText(IDC_EDIT_HAND_L_Y, str_y);
-				break;
-
-			case 3:
-				str_x.Format(_T("%d"), point.x);
-				str_y.Format(_T("%d"), point.y);
-				SetDlgItemText(IDC_EDIT_HAND_R_X, str_x);
-				SetDlgItemText(IDC_EDIT_HAND_R_Y, str_y);
-				break;
-
-			case 4:
-				str_x.Format(_T("%d"), point.x);
-				str_y.Format(_T("%d"), point.y);
-				SetDlgItemText(IDC_EDIT_FOOT_L_X, str_x);
-				SetDlgItemText(IDC_EDIT_FOOT_L_Y, str_y);
-				break;
-
-			case 5:
-				str_x.Format(_T("%d"), point.x);
-				str_y.Format(_T("%d"), point.y);
-				SetDlgItemText(IDC_EDIT_FOOT_R_X, str_x);
-				SetDlgItemText(IDC_EDIT_FOOT_R_Y, str_y);
-				break;
-
-			case 6:
-				left = point.x;
-				top = point.y;
-				str_x.Format(_T("%d"), point.x);
-				str_y.Format(_T("%d"), point.y);
-				SetDlgItemText(IDC_EDIT_BB_TOP, str_x);
-				SetDlgItemText(IDC_EDIT_BB_LEFT, str_y);
-				break;
-
-			case 7:
-				//CString str_top, str_left;
-				int center_x, center_y, width, height;
-				right = point.x;
-				bottom = point.y;
-				str_x.Format(_T("%d"), point.x);
-				str_y.Format(_T("%d"), point.y);
-				SetDlgItemText(IDC_EDIT_BB_BOTTOM, str_x);
-				SetDlgItemText(IDC_EDIT_BB_RIGHT, str_y);
-
-				center_x = (left + right) / 2;
-				center_y = (top + bottom) / 2;
-				str_x.Format(_T("%d"), center_x);
-				str_y.Format(_T("%d"), center_y);
-				SetDlgItemText(IDC_EDIT_BB_CENTER_X, str_x);
-				SetDlgItemText(IDC_EDIT_BB_CENTER_Y, str_y);
-
-				width = right - left;
-				height = bottom - top;
-				str_x.Format(_T("%d"), width);
-				str_y.Format(_T("%d"), height);
-				SetDlgItemText(IDC_EDIT_BB_WIDTH, str_x);
-				SetDlgItemText(IDC_EDIT_BB_HEIGHT, str_y);
-
-				//GetDlgItem(IDC_EDIT_BB_TOP)->GetWindowText(str_top);
-				//GetDlgItem(IDC_EDIT_BB_LEFT)->GetWindowText(str_left);
-				break;
-
-			// 이런식으로 좌표 받는게 맞는 방법일지? 다른 방법은 없는지?
-		}
-
-
-		
-
-	}
+	prePosition = point;
 
 	CDialogEx::OnLButtonDown(nFlags, point);
 }
@@ -577,60 +556,117 @@ void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 void CGroundTruthMakerDlg::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	// TODO: 여기에 메시지 처리기 코드를 추가 및/또는 기본값을 호출합니다.
+	SetPointValue(point);
 
 	CDialogEx::OnLButtonUp(nFlags, point);
 }
 
 
-void CGroundTruthMakerDlg::OnClickedCheck1()
+
+void CGroundTruthMakerDlg::OnClickedRadioBox(UINT msg)
 {
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
-	check_box_part = 6;
-
-}
-
-
-void CGroundTruthMakerDlg::OnClickedCheckHead()
-{
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
-	check_box_part = 1;
-}
-
-
-void CGroundTruthMakerDlg::OnBnClickedHandL()
-{
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
-	check_box_part = 2;
-}
-
-
-void CGroundTruthMakerDlg::OnClickedHandR()
-{
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
-	check_box_part = 3;
-}
-
-
-void CGroundTruthMakerDlg::OnClickedFootL()
-{
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
-	check_box_part = 4;
+	UpdateData(TRUE);
+	UpdateData(FALSE);
 }
 
 
 
 
-void CGroundTruthMakerDlg::OnClickedFootR()
+
+void CGroundTruthMakerDlg::SetPointValue(CPoint clickedpoint)
 {
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
-	check_box_part = 5;
+	CString str_x, str_y;
+	
+	if (m_Cursor == TRUE)
+	{
+
+		switch (m_radio)
+		{
+			
+			case 0:
+				str_x.Format(_T("%d"), prePosition.x);
+				str_y.Format(_T("%d"), prePosition.y);
+				SetDlgItemText(IDC_STATIC_BOX_PRINT_X, str_x);
+				SetDlgItemText(IDC_STATIC_BOX_PRINT_Y, str_y);
+				//newObject.objectBoxX= prePosition.x;
+				//newObject.objectBoxY = prePosition.y;
+				
+				//newObject.objectBoxW = clickedpoint.x - prePosition.x;
+				//newObject.objectBoxH = clickedpoint.y - prePosition.y;
+				str_x.Format(_T("%d"), clickedpoint.x - prePosition.x);
+				str_y.Format(_T("%d"), clickedpoint.y - prePosition.y);
+				SetDlgItemText(IDC_STATIC_BOX_PRINT_W, str_x);
+				SetDlgItemText(IDC_STATIC_BOX_PRINT_H, str_y);
+				break;
+			
+			case 1:
+				str_x.Format(_T("%d"), clickedpoint.x);
+				str_y.Format(_T("%d"), clickedpoint.y);
+				SetDlgItemText(IDC_STATIC_HEAD_PRINT_X, str_x);
+				SetDlgItemText(IDC_STATIC_HEAD_PRINT_Y, str_y);
+				//newObject.headX = clickedpoint.x;
+				//newObject.headY = clickedpoint.y;
+				break;
+
+			case 2:
+				str_x.Format(_T("%d"), clickedpoint.x);
+				str_y.Format(_T("%d"), clickedpoint.y);
+				SetDlgItemText(IDC_STATIC_L_HAND_PRINT_X, str_x);
+				SetDlgItemText(IDC_STATIC_L_HAND_PRINT_Y, str_y);
+				//newObject.leftHandX = clickedpoint.x;
+				//newObject.leftHandY = clickedpoint.y;
+				break;
+
+			case 3:
+				str_x.Format(_T("%d"), clickedpoint.x);
+				str_y.Format(_T("%d"), clickedpoint.y);
+				SetDlgItemText(IDC_STATIC_R_HAND_PRINT_X, str_x);
+				SetDlgItemText(IDC_STATIC_R_HAND_PRINT_Y, str_y);
+				//newObject.rightHandX = clickedpoint.x;
+				//newObject.rightHandY = clickedpoint.y;
+				break;
+
+			case 4:
+				str_x.Format(_T("%d"), clickedpoint.x);
+				str_y.Format(_T("%d"), clickedpoint.y);
+				SetDlgItemText(IDC_STATIC_L_FOOT_PRINT_X, str_x);
+				SetDlgItemText(IDC_STATIC_L_FOOT_PRINT_Y, str_y);
+				//newObject.leftFootX = clickedpoint.x;
+				//newObject.leftFootY = clickedpoint.y;
+				break;
+
+			case 5:
+				str_x.Format(_T("%d"), clickedpoint.x);
+				str_y.Format(_T("%d"), clickedpoint.y);
+				SetDlgItemText(IDC_STATIC_R_FOOT_PRINT_X, str_x);
+				SetDlgItemText(IDC_STATIC_R_FOOT_PRINT_Y, str_y);
+				//newObject.rightFootX = clickedpoint.x;
+				//newObject.rightFootY = clickedpoint.y;
+				break;
+
+
+		}
+
+	}
 }
 
 
-void CGroundTruthMakerDlg::OnClickedCheck2()
+/*
+void CGroundTruthMakerDlg::CreateMetadata()
 {
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
-	check_box_part = 7;
+	CGTObjectInfo newObject;
+	newObject.id = m_nCurID;
 }
 
 
+void CGroundTruthMakerDlg::SaveMetadata()
+{
+	if (m_bDataChanged)
+	{
+		//CString strMetadataFilePath = m_vecStrFilePath[m_nCurVideoFrame];
+		//strMetadataFilePath.Replace(_T(".png"), _T(".txt"));
+		m_cCurMetadata.writefile(strMetadataFilePath);
+	}
+}
+*/

@@ -9,7 +9,48 @@
 #pragma once
 
 #include "opencv2/opencv.hpp"
+#include <vector>
+/*
+class CGTObjectInfo
+{
+public:
+	CGTObjectInfo() : id(0), objectBoxX(0), objectBoxY(0), objectBoxW(0), objectBoxH(0) {}
+	
+	int id;
+	int category;
+	int objectBoxX;
+	int objectBoxY;
+	int objectBoxW;
+	int objectBoxH;
+	int headX;
+	int headY;
+	int rightHandX;
+	int rightHandY;
+	int leftHandX;
+	int leftHandY;
+	int rightFootX;
+	int rightFootY;
+	int leftFootX;
+	int leftFootY;
+};
 
+class CGTMetadata
+{
+public:
+	CGTMetadata() : numObject(0), frameIndex(0) {}
+	void clear()
+	{
+		this->numObject = 0;
+		this->vecObjects.clear();
+	}
+	bool writefile(const CString strPath);
+	bool readfile(const CString strPath);
+
+	int numObject;
+	int frameIndex;
+	std::vector<CGTObjectInfo> vecObjects;
+};
+*/
 
 class CGroundTruthMakerDlg : public CDialogEx
 {
@@ -48,9 +89,10 @@ protected:
 	// VARIABLES
 	//---------------------------------------------------------------------
 	bool m_Cursor;
-	bool check_box_1 = FALSE;
-	int check_box_part;
 	int top, bottom, right, left;
+	bool m_bDataChanged;
+	//CGTMetadata m_cCurMetadata;
+	CString strMetadataFilePath;
 protected:
 	HICON m_hIcon;
 
@@ -62,6 +104,7 @@ protected:
 	cv::VideoCapture *m_pVideoCapture;	
 	int m_nNumVideoFrames;
 	int m_nCurVideoFrame;
+	int m_nCurID;
 	cv::Mat m_matVideoFrame;
 
 	// slider
@@ -71,16 +114,13 @@ public:
 	afx_msg void OnBnClickedButtonNext();
 	afx_msg void OnBnClickedButtonPrev();
 	afx_msg void OnNMReleasedcaptureSliderVideo(NMHDR *pNMHDR, LRESULT *pResult);
-	afx_msg void OnBnClickedButton1();
-	afx_msg void OnBnClickedButton2();
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
-	afx_msg void OnClickedCheck1();
-	afx_msg void OnClickedCheckHead();
-	afx_msg void OnBnClickedHandL();
-	afx_msg void OnClickedHandR();
-	afx_msg void OnClickedFootL();
-	afx_msg void OnClickedFootR();
-	afx_msg void OnClickedCheck2();
+	UINT m_radio;
+	afx_msg void OnClickedRadioBox(UINT msg);
+	void SetPointValue(CPoint clickedpoint);
+	CPoint prePosition;
+	//void SaveMetadata();
+	//void CreateMetadata();
 };
