@@ -29,21 +29,21 @@ bool CGTMetadata::writefile(const CString strPath)
 		for (int i = 0; i < (int)vecObjects.size(); i++)
 		{
 			outputFile << vecObjects[i].id << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].cls << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].category << " ";
 			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].objectBoxX << " ";
 			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].objectBoxY << " ";
 			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].objectBoxW << " ";
 			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].objectBoxH << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].headX << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].headY << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].rightHandX << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].rightHandY << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].leftHandX << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].leftHandY << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].rightFootX << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].rightFootY << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].leftFootX << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].leftFootY << "\n";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].head.x << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].head.y << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].rightHand.x << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].rightHand.y << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].leftHand.x << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].leftHand.y << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].rightFoot.x << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].rightFoot.y << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].leftFoot.x << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].leftFoot.y << "\n";
 
 
 		}
@@ -55,7 +55,7 @@ bool CGTMetadata::writefile(const CString strPath)
 	}
 	return true;
 }
-
+//*******************수정필요
 bool CGTMetadata::readfile(const CString strPath)
 {
 	CString strCurLine;
@@ -95,7 +95,7 @@ bool CGTMetadata::readfile(const CString strPath)
 	}
 	return true;
 }
-
+//******************************************************
 
 class CAboutDlg : public CDialogEx
 {
@@ -517,34 +517,34 @@ void CGroundTruthMakerDlg::ShowFrame()
 			m_cCurMetadata.vecObjects[i].objectBoxY + m_cCurMetadata.vecObjects[i].objectBoxH - 1);
 		//head
 		dc->Rectangle(
-			m_cCurMetadata.vecObjects[i].headX-1,
-			m_cCurMetadata.vecObjects[i].headY-1,
-			m_cCurMetadata.vecObjects[i].headX + 1,
-			m_cCurMetadata.vecObjects[i].headY + 1);
+			m_cCurMetadata.vecObjects[i].head.x-1,
+			m_cCurMetadata.vecObjects[i].head.y-1,
+			m_cCurMetadata.vecObjects[i].head.x + 1,
+			m_cCurMetadata.vecObjects[i].head.y + 1);
 		//left hand
 		dc->Rectangle(
-			m_cCurMetadata.vecObjects[i].leftHandX - 1,
-			m_cCurMetadata.vecObjects[i].leftHandY - 1,
-			m_cCurMetadata.vecObjects[i].leftHandX + 1,
-			m_cCurMetadata.vecObjects[i].leftHandY + 1);
+			m_cCurMetadata.vecObjects[i].leftHand.x - 1,
+			m_cCurMetadata.vecObjects[i].leftHand.y - 1,
+			m_cCurMetadata.vecObjects[i].leftHand.x + 1,
+			m_cCurMetadata.vecObjects[i].leftHand.y + 1);
 		//right hand
 		dc->Rectangle(
-			m_cCurMetadata.vecObjects[i].rightHandX - 1,
-			m_cCurMetadata.vecObjects[i].rightHandY - 1,
-			m_cCurMetadata.vecObjects[i].rightHandX + 1,
-			m_cCurMetadata.vecObjects[i].rightHandY + 1);
+			m_cCurMetadata.vecObjects[i].rightHand.x - 1,
+			m_cCurMetadata.vecObjects[i].rightHand.y - 1,
+			m_cCurMetadata.vecObjects[i].rightHand.x + 1,
+			m_cCurMetadata.vecObjects[i].rightHand.y + 1);
 		//left foot
 		dc->Rectangle(
-			m_cCurMetadata.vecObjects[i].leftFootX - 1,
-			m_cCurMetadata.vecObjects[i].leftFootY - 1,
-			m_cCurMetadata.vecObjects[i].leftFootX + 1,
-			m_cCurMetadata.vecObjects[i].leftFootY + 1);
+			m_cCurMetadata.vecObjects[i].leftFoot.x - 1,
+			m_cCurMetadata.vecObjects[i].leftFoot.y - 1,
+			m_cCurMetadata.vecObjects[i].leftFoot.x + 1,
+			m_cCurMetadata.vecObjects[i].leftFoot.y + 1);
 		//right foot
 		dc->Rectangle(
-			m_cCurMetadata.vecObjects[i].rightFootX - 1,
-			m_cCurMetadata.vecObjects[i].rightFootY - 1,
-			m_cCurMetadata.vecObjects[i].rightFootX + 1,
-			m_cCurMetadata.vecObjects[i].rightFootY + 1);
+			m_cCurMetadata.vecObjects[i].rightFoot.x - 1,
+			m_cCurMetadata.vecObjects[i].rightFoot.y - 1,
+			m_cCurMetadata.vecObjects[i].rightFoot.x + 1,
+			m_cCurMetadata.vecObjects[i].rightFoot.y + 1);
 
 		// ID
 		CString strID;
@@ -559,6 +559,8 @@ void CGroundTruthMakerDlg::ShowFrame()
 		dc->SelectObject(oldPen);
 	}
 	dc->SelectObject(oldBrush);
+	
+
 	
 	Invalidate(FALSE);
 	//****************************************************************
@@ -601,12 +603,6 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 	if ((m_Cursor == TRUE) && (point.x >= rect.left) && (point.x <= rect.right) && (point.y >= rect.top) && (point.y <= rect.bottom) )
 	{
 		SetCursor(::LoadCursor(NULL, IDC_CROSS));
-		//str.Format(_T("%d"), point.x);
-		//SetDlgItemText(IDC_EDIT_ID, str);
-		
-		//str.Format(_T("%d"), point.y);
-		//SetDlgItemText(IDC_EDIT_CLASS, str);
-		
 	}
 	else
 	{
@@ -624,7 +620,6 @@ void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 	// TODO: 여기에 메시지 처리기 코드를 추가 및/또는 기본값을 호출합니다.
 	prePosition = point;
 
-
 	CDialogEx::OnLButtonDown(nFlags, point);
 }
 
@@ -635,11 +630,6 @@ void CGroundTruthMakerDlg::OnLButtonUp(UINT nFlags, CPoint point)
 	// TODO: 여기에 메시지 처리기 코드를 추가 및/또는 기본값을 호출합니다.
 	SetPointValue(point);
 
-	//CClientDC dc(this);
-	//dc.Rectangle(prePosition.x, prePosition.y, point.x, point.y);
-	curPosition = point;                                             // 박스 그리기 위함
-
-	
 	CDialogEx::OnLButtonUp(nFlags, point);
 }
 
@@ -655,212 +645,246 @@ void CGroundTruthMakerDlg::OnClickedRadioBox(UINT msg)
 
 
 
-
-
 void CGroundTruthMakerDlg::SetPointValue(CPoint clickedpoint)
 {
 	CString str,str_x, str_y;
 	
-	
-	if (m_Cursor == TRUE)
+	switch (m_radio)
 	{
-		switch (m_radio)
-		{
 			
-			case 0:
-				GetDlgItemText(IDC_EDIT_ID, str);
-				m_nCurID = _ttoi(str);
-				newObject.id = m_nCurID;
+		case 0:
+			GetDlgItemText(IDC_EDIT_ID, str);
+			m_nCurID = _ttoi(str);
+			newObject.id = m_nCurID;
 				
-				GetDlgItemText(IDC_EDIT_CLASS, str);
-				newObject.cls = _ttoi(str);
+			GetDlgItemText(IDC_EDIT_CLASS, str);
+			newObject.category = _ttoi(str);
 
-				str_x.Format(_T("%d"), prePosition.x);
-				str_y.Format(_T("%d"), prePosition.y);
-				SetDlgItemText(IDC_STATIC_BOX_PRINT_X, str_x);
-				SetDlgItemText(IDC_STATIC_BOX_PRINT_Y, str_y);
-				newObject.objectBoxX= prePosition.x;
-				newObject.objectBoxY = prePosition.y;
+			str_x.Format(_T("%d"), prePosition.x);
+			str_y.Format(_T("%d"), prePosition.y);
+			SetDlgItemText(IDC_STATIC_BOX_PRINT_X, str_x);
+			SetDlgItemText(IDC_STATIC_BOX_PRINT_Y, str_y);
+			newObject.objectBoxX= prePosition.x;
+			newObject.objectBoxY = prePosition.y;
 				
-				newObject.objectBoxW = clickedpoint.x - prePosition.x;
-				newObject.objectBoxH = clickedpoint.y - prePosition.y;
-				str_x.Format(_T("%d"), clickedpoint.x - prePosition.x);
-				str_y.Format(_T("%d"), clickedpoint.y - prePosition.y);
-				SetDlgItemText(IDC_STATIC_BOX_PRINT_W, str_x);
-				SetDlgItemText(IDC_STATIC_BOX_PRINT_H, str_y);
+			newObject.objectBoxW = clickedpoint.x - prePosition.x;
+			newObject.objectBoxH = clickedpoint.y - prePosition.y;
+			str_x.Format(_T("%d"), clickedpoint.x - prePosition.x);
+			str_y.Format(_T("%d"), clickedpoint.y - prePosition.y);
+			SetDlgItemText(IDC_STATIC_BOX_PRINT_W, str_x);
+			SetDlgItemText(IDC_STATIC_BOX_PRINT_H, str_y);
 
-				Showbox(prePosition.x,prePosition.y, clickedpoint.x - prePosition.x, clickedpoint.y - prePosition.y);
-				break;
+			Showbox(prePosition.x,prePosition.y, clickedpoint.x - prePosition.x, clickedpoint.y - prePosition.y);
+			break;
 			
-			case 1:
-				str_x.Format(_T("%d"), clickedpoint.x);
-				str_y.Format(_T("%d"), clickedpoint.y);
-				SetDlgItemText(IDC_STATIC_HEAD_PRINT_X, str_x);
-				SetDlgItemText(IDC_STATIC_HEAD_PRINT_Y, str_y);
-				newObject.headX = clickedpoint.x;
-				newObject.headY = clickedpoint.y;
+		case 1:
+			str_x.Format(_T("%d"), clickedpoint.x);
+			str_y.Format(_T("%d"), clickedpoint.y);
+			SetDlgItemText(IDC_STATIC_HEAD_PRINT_X, str_x);
+			SetDlgItemText(IDC_STATIC_HEAD_PRINT_Y, str_y);
+			newObject.head = clickedpoint;
 
-				ShowPoint(clickedpoint);
-				break;
+			Showbox(clickedpoint.x, clickedpoint.y, 1, 1);
+			break;
 
-			case 2:
-				str_x.Format(_T("%d"), clickedpoint.x);
-				str_y.Format(_T("%d"), clickedpoint.y);
-				SetDlgItemText(IDC_STATIC_L_HAND_PRINT_X, str_x);
-				SetDlgItemText(IDC_STATIC_L_HAND_PRINT_Y, str_y);
-				newObject.leftHandX = clickedpoint.x;
-				newObject.leftHandY = clickedpoint.y;
+		case 2:
+			str_x.Format(_T("%d"), clickedpoint.x);
+			str_y.Format(_T("%d"), clickedpoint.y);
+			SetDlgItemText(IDC_STATIC_L_HAND_PRINT_X, str_x);
+			SetDlgItemText(IDC_STATIC_L_HAND_PRINT_Y, str_y);
+			newObject.leftHand = clickedpoint;
+			
+			Showbox(clickedpoint.x, clickedpoint.y, 1, 1);
+			break;
 
-				ShowPoint(clickedpoint);
-				break;
+		case 3:
+			str_x.Format(_T("%d"), clickedpoint.x);
+			str_y.Format(_T("%d"), clickedpoint.y);
+			SetDlgItemText(IDC_STATIC_R_HAND_PRINT_X, str_x);
+			SetDlgItemText(IDC_STATIC_R_HAND_PRINT_Y, str_y);
+			newObject.rightHand = clickedpoint;
 
-			case 3:
-				str_x.Format(_T("%d"), clickedpoint.x);
-				str_y.Format(_T("%d"), clickedpoint.y);
-				SetDlgItemText(IDC_STATIC_R_HAND_PRINT_X, str_x);
-				SetDlgItemText(IDC_STATIC_R_HAND_PRINT_Y, str_y);
-				newObject.rightHandX = clickedpoint.x;
-				newObject.rightHandY = clickedpoint.y;
+			Showbox(clickedpoint.x, clickedpoint.y, 1, 1);
+			break;
 
-				ShowPoint(clickedpoint);
-				break;
+		case 4:
+			str_x.Format(_T("%d"), clickedpoint.x);
+			str_y.Format(_T("%d"), clickedpoint.y);
+			SetDlgItemText(IDC_STATIC_L_FOOT_PRINT_X, str_x);
+			SetDlgItemText(IDC_STATIC_L_FOOT_PRINT_Y, str_y);
+			newObject.leftFoot = clickedpoint;
 
-			case 4:
-				str_x.Format(_T("%d"), clickedpoint.x);
-				str_y.Format(_T("%d"), clickedpoint.y);
-				SetDlgItemText(IDC_STATIC_L_FOOT_PRINT_X, str_x);
-				SetDlgItemText(IDC_STATIC_L_FOOT_PRINT_Y, str_y);
-				newObject.leftFootX = clickedpoint.x;
-				newObject.leftFootY = clickedpoint.y;
+			Showbox(clickedpoint.x, clickedpoint.y, 1, 1);
+			break;
 
-				ShowPoint(clickedpoint);
-				break;
+		case 5:
+			str_x.Format(_T("%d"), clickedpoint.x);
+			str_y.Format(_T("%d"), clickedpoint.y);
+			SetDlgItemText(IDC_STATIC_R_FOOT_PRINT_X, str_x);
+			SetDlgItemText(IDC_STATIC_R_FOOT_PRINT_Y, str_y);
+			newObject.rightFoot = clickedpoint;
 
-			case 5:
-				str_x.Format(_T("%d"), clickedpoint.x);
-				str_y.Format(_T("%d"), clickedpoint.y);
-				SetDlgItemText(IDC_STATIC_R_FOOT_PRINT_X, str_x);
-				SetDlgItemText(IDC_STATIC_R_FOOT_PRINT_Y, str_y);
-				newObject.rightFootX = clickedpoint.x;
-				newObject.rightFootY = clickedpoint.y;
-
-				
-				bFound = false;
-				for (int i = 0; i < (int)m_cCurMetadata.vecObjects.size(); i++)
+			//*******************************************************************
+			//수정 필요! newObject내에 값들이 다 입력 되었는지 확인하고 이부분이 동작하도록 만들어야 함! 
+			bFound = false;
+			for (int i = 0; i < (int)m_cCurMetadata.vecObjects.size(); i++)
+			{
+				if (m_cCurMetadata.vecObjects[i].id == m_nCurID)
 				{
-					if (m_cCurMetadata.vecObjects[i].id == m_nCurID)
-					{
-						m_cCurMetadata.vecObjects[i] = newObject;
-						bFound = true;
-						break;
-					}
+					m_cCurMetadata.vecObjects[i] = newObject;
+					bFound = true;
+					break;
 				}
-				if (!bFound) { m_cCurMetadata.vecObjects.push_back(newObject); }
-				m_bDataChanged = true;
-				
+			}
+			if (!bFound) { m_cCurMetadata.vecObjects.push_back(newObject); }
+			m_bDataChanged = true;
+			//*********************************************************************
+			
+			Showbox(clickedpoint.x, clickedpoint.y, 1, 1);
+			break;
 
-				ShowPoint(clickedpoint);
-				break;
-
-			default:
-				break;
-		}
-
+		default:
+			break;
 	}
+
+
 }
 
 
 
 void CGroundTruthMakerDlg::SaveMetadata()
 {
+	CString str;
+	CString buff;
 	if (m_bDataChanged)
-	{
-		strMetadataFilePath.Replace(_T("medium.avi"),_T("data.txt"));
-		m_cCurMetadata.writefile(strMetadataFilePath);
+	{	
+		str.Format(_T(""));
+		strMetadataFilePath.Replace(_T("medium.avi"),str);
+		buff = strMetadataFilePath;
+
+		str.Format(_T("%d.txt"),m_nCurVideoFrame);
+		buff.Append(str);
+		m_cCurMetadata.writefile(buff);
 	}
 }
 
-void CGroundTruthMakerDlg::Showbox(int x, int y, int w, int h)
+
+void CGroundTruthMakerDlg::Showbox(int x, int y, int width, int height)
 {
 	//**************************************************************
 	// jeongmin's box draw using depth code
 	CDC *dc = GetDC();
-	//m_csVideoFrame.GetClientRect(&clientRect);
-	//m_pVideoFrameImage->Draw(::GetDC(m_csVideoFrame.m_hWnd), 0, 0, clientRect.right, clientRect.bottom);
 
 	CBrush brush;
 	brush.CreateStockObject(NULL_BRUSH);
 	CBrush *oldBrush = dc->SelectObject(&brush);
-	/*
-	for (int i = 0; i < (int)m_cCurMetadata.vecObjects.size(); i++)
+	
+	
+	COLORREF penColor = RGB(255, 0, 0);
+
+	CPen pen;
+	pen.CreatePen(PS_DOT, 3, penColor);
+	CPen* oldPen = dc->SelectObject(&pen);
+
+	if(width ==1 && height ==1)
+		dc->Rectangle(x-width, y- height, x + width, y + height);
+	else 
+		dc->Rectangle(x, y, x + width - 1, y + height - 1);
+	
+	
+	dc->SelectObject(oldPen);
+	dc->SelectObject(oldBrush);
+	
+	//****************************************************************
+}
+
+
+BOOL CGroundTruthMakerDlg::PreTranslateMessage(MSG *pMsg)
+{
+	CString str_x, str_y;
+
+	if (WM_KEYDOWN == pMsg->message)
 	{
-		COLORREF penColor = RGB(170, 170, 170);
-		if (m_cCurMetadata.vecObjects[i].id == m_nCurID)
+		switch (pMsg->wParam)
 		{
-			penColor = RGB(255, 0, 0);
+		case VK_LEFT:
+			m_cCurMetadata.vecObjects[m_nCurID - 1].objectBoxX--;
+			m_cCurMetadata.vecObjects[m_nCurID - 1].head.x--;
+			m_cCurMetadata.vecObjects[m_nCurID - 1].leftHand.x--;
+			m_cCurMetadata.vecObjects[m_nCurID - 1].rightHand.x--;
+			m_cCurMetadata.vecObjects[m_nCurID - 1].leftFoot.x--;
+			m_cCurMetadata.vecObjects[m_nCurID - 1].rightFoot.x--;
+			ShowFrame();
+			break;
+		case VK_RIGHT:
+			m_cCurMetadata.vecObjects[m_nCurID - 1].objectBoxX++;
+			m_cCurMetadata.vecObjects[m_nCurID - 1].head.x++;
+			m_cCurMetadata.vecObjects[m_nCurID - 1].leftHand.x++;
+			m_cCurMetadata.vecObjects[m_nCurID - 1].rightHand.x++;
+			m_cCurMetadata.vecObjects[m_nCurID - 1].leftFoot.x++;
+			m_cCurMetadata.vecObjects[m_nCurID - 1].rightFoot.x++;
+			ShowFrame();
+			break;
+		case VK_UP:
+			m_cCurMetadata.vecObjects[m_nCurID - 1].objectBoxY--;
+			m_cCurMetadata.vecObjects[m_nCurID - 1].head.y--;
+			m_cCurMetadata.vecObjects[m_nCurID - 1].leftHand.y--;
+			m_cCurMetadata.vecObjects[m_nCurID - 1].rightHand.y--;
+			m_cCurMetadata.vecObjects[m_nCurID - 1].leftFoot.y--;
+			m_cCurMetadata.vecObjects[m_nCurID - 1].rightFoot.y--;
+			ShowFrame();
+			break;
+		case VK_DOWN:
+
+			m_cCurMetadata.vecObjects[m_nCurID - 1].objectBoxY++;
+			m_cCurMetadata.vecObjects[m_nCurID - 1].head.y++;
+			m_cCurMetadata.vecObjects[m_nCurID - 1].leftHand.y++;
+			m_cCurMetadata.vecObjects[m_nCurID - 1].rightHand.y++;
+			m_cCurMetadata.vecObjects[m_nCurID - 1].leftFoot.y++;
+			m_cCurMetadata.vecObjects[m_nCurID - 1].rightFoot.y++;
+			ShowFrame();
+			break;
+		default:
+			// do nothing
+			break;
 		}
-		CPen pen;
-		pen.CreatePen(PS_DOT, 3, penColor);
-		CPen* oldPen = dc->SelectObject(&pen);
-
-		// box
-		dc->Rectangle(
-			m_cCurMetadata.vecObjects[i].objectBoxX,
-			m_cCurMetadata.vecObjects[i].objectBoxY,
-			m_cCurMetadata.vecObjects[i].objectBoxW - 1,
-			m_cCurMetadata.vecObjects[i].objectBoxH - 1);
-
-		// ID
-		CString strID;
-		strID.Format(_T("%d"), m_cCurMetadata.vecObjects[i].id);
-		dc->SetTextColor(penColor);
-		dc->SetBkColor(RGB(0, 0, 0));
-		dc->TextOut(
-			m_cCurMetadata.vecObjects[i].objectBoxX,
-			m_cCurMetadata.vecObjects[i].objectBoxY,
-			strID);
-
-		dc->SelectObject(oldPen);
 	}
-	dc->SelectObject(oldBrush);
+	//vector error가 난다 어떤 이유인지 체크
+	/*
+	str_x.Format(_T("%d"),m_cCurMetadata.vecObjects[m_nCurID - 1].objectBoxX);
+	str_y.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].objectBoxY);
+	SetDlgItemText(IDC_STATIC_BOX_PRINT_X, str_x);
+	SetDlgItemText(IDC_STATIC_BOX_PRINT_Y, str_y);
+
+	str_x.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].objectBoxW);
+	str_y.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].objectBoxH);
+	SetDlgItemText(IDC_STATIC_BOX_PRINT_W, str_x);
+	SetDlgItemText(IDC_STATIC_BOX_PRINT_H, str_y);
+
+	str_x.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].head.x);
+	str_y.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].head.y);
+	SetDlgItemText(IDC_STATIC_HEAD_PRINT_X, str_x);
+	SetDlgItemText(IDC_STATIC_HEAD_PRINT_Y, str_y);
+
+	str_x.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].leftHand.x);
+	str_y.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].leftHand.y);
+	SetDlgItemText(IDC_STATIC_L_HAND_PRINT_X, str_x);
+	SetDlgItemText(IDC_STATIC_L_HAND_PRINT_Y, str_y);
+
+	str_x.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].rightHand.x);
+	str_y.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].rightHand.y);
+	SetDlgItemText(IDC_STATIC_R_HAND_PRINT_X, str_x);
+	SetDlgItemText(IDC_STATIC_R_HAND_PRINT_Y, str_y);
+
+	str_x.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].leftFoot.x);
+	str_y.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].leftFoot.y);
+	SetDlgItemText(IDC_STATIC_L_FOOT_PRINT_X, str_x);
+	SetDlgItemText(IDC_STATIC_L_FOOT_PRINT_Y, str_y);
+
+	str_x.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].rightFoot.x);
+	str_y.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].rightFoot.y);
+	SetDlgItemText(IDC_STATIC_R_FOOT_PRINT_X, str_x);
+	SetDlgItemText(IDC_STATIC_R_FOOT_PRINT_Y, str_y);
 	*/
-	
-	COLORREF penColor = RGB(255, 0, 0);
-
-	CPen pen;
-	pen.CreatePen(PS_DOT, 3, penColor);
-	CPen* oldPen = dc->SelectObject(&pen);
-
-	dc->Rectangle(x, y, x+w-1, y+h-1);
-	dc->SelectObject(oldPen);
-	dc->SelectObject(oldBrush);
-	
-	//****************************************************************
-}
-
-void CGroundTruthMakerDlg::ShowPoint(CPoint cent)
-{
-	//**************************************************************
-	// jeongmin's box draw using depth code
-	CDC *dc = GetDC();
-	
-	CBrush brush;
-	brush.CreateStockObject(NULL_BRUSH);
-	CBrush *oldBrush = dc->SelectObject(&brush);
-	
-
-	COLORREF penColor = RGB(255, 0, 0);
-
-	CPen pen;
-	pen.CreatePen(PS_DOT, 3, penColor);
-	CPen* oldPen = dc->SelectObject(&pen);
-
-	dc->Rectangle(cent.x - 1, cent.y - 1, cent.x + 1, cent.y + 1);
-	
-	dc->SelectObject(oldPen);
-	dc->SelectObject(oldBrush);
-
-	
-
-	//****************************************************************
+	return CDialog::PreTranslateMessage(pMsg);
 }

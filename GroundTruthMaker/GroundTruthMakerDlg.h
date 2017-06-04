@@ -14,24 +14,19 @@
 class CGTObjectInfo
 {
 public:
-	CGTObjectInfo() : id(0), objectBoxX(0), objectBoxY(0), objectBoxW(0), objectBoxH(0) {}
+	CGTObjectInfo() : id(0), objectBoxX(0), objectBoxY(0), objectBoxW(0), objectBoxH(0), size(0) {}
 	
 	int id;
-	int cls;
+	int category;
 	int objectBoxX;
 	int objectBoxY;
 	int objectBoxW;
 	int objectBoxH;
-	int headX;
-	int headY;
-	int rightHandX;
-	int rightHandY;
-	int leftHandX;
-	int leftHandY;
-	int rightFootX;
-	int rightFootY;
-	int leftFootX;
-	int leftFootY;
+	CPoint head;
+	CPoint rightHand;
+	CPoint leftHand;
+	CPoint rightFoot;
+	CPoint leftFoot;
 };
 
 class CGTMetadata
@@ -118,15 +113,13 @@ public:
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
-	UINT m_radio;
 	afx_msg void OnClickedRadioBox(UINT msg);
-	void SetPointValue(CPoint clickedpoint);
-	CPoint prePosition;
-	CPoint curPosition;
+	BOOL CGroundTruthMakerDlg::PreTranslateMessage(MSG *pMsg);
 	void SaveMetadata();
-	
-	//**************
-	void CGroundTruthMakerDlg::Showbox(int x, int y, int w, int h);
-	void CGroundTruthMakerDlg::ShowPoint(CPoint cent);
+	void CGroundTruthMakerDlg::Showbox(int x, int y, int width, int height);
+	void SetPointValue(CPoint clickedpoint);
+
+	UINT m_radio;
+	CPoint prePosition;
 	bool bFound = false;
 };
