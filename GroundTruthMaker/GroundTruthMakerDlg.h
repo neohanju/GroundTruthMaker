@@ -10,14 +10,14 @@
 
 #include "opencv2/opencv.hpp"
 #include <vector>
-/*
+
 class CGTObjectInfo
 {
 public:
 	CGTObjectInfo() : id(0), objectBoxX(0), objectBoxY(0), objectBoxW(0), objectBoxH(0) {}
 	
 	int id;
-	int category;
+	int cls;
 	int objectBoxX;
 	int objectBoxY;
 	int objectBoxW;
@@ -50,7 +50,7 @@ public:
 	int frameIndex;
 	std::vector<CGTObjectInfo> vecObjects;
 };
-*/
+
 
 class CGroundTruthMakerDlg : public CDialogEx
 {
@@ -91,7 +91,8 @@ protected:
 	bool m_Cursor;
 	int top, bottom, right, left;
 	bool m_bDataChanged;
-	//CGTMetadata m_cCurMetadata;
+	CGTMetadata m_cCurMetadata;
+	CGTObjectInfo newObject;
 	CString strMetadataFilePath;
 protected:
 	HICON m_hIcon;
@@ -121,6 +122,11 @@ public:
 	afx_msg void OnClickedRadioBox(UINT msg);
 	void SetPointValue(CPoint clickedpoint);
 	CPoint prePosition;
-	//void SaveMetadata();
-	//void CreateMetadata();
+	CPoint curPosition;
+	void SaveMetadata();
+	
+	//**************
+	void CGroundTruthMakerDlg::Showbox(int x, int y, int w, int h);
+	void CGroundTruthMakerDlg::ShowPoint(CPoint cent);
+	bool bFound = false;
 };

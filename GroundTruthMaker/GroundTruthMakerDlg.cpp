@@ -18,7 +18,7 @@
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
-/*
+
 bool CGTMetadata::writefile(const CString strPath)
 {
 	try
@@ -29,6 +29,7 @@ bool CGTMetadata::writefile(const CString strPath)
 		for (int i = 0; i < (int)vecObjects.size(); i++)
 		{
 			outputFile << vecObjects[i].id << " ";
+			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].cls << " ";
 			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].objectBoxX << " ";
 			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].objectBoxY << " ";
 			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].objectBoxW << " ";
@@ -94,7 +95,7 @@ bool CGTMetadata::readfile(const CString strPath)
 	}
 	return true;
 }
-*/
+
 
 class CAboutDlg : public CDialogEx
 {
@@ -365,7 +366,7 @@ void CGroundTruthMakerDlg::ShowFrame()
 	m_csVideoFrame.GetClientRect(&clientRect);
 	cv::Size rectSize(clientRect.right, clientRect.bottom);
 	cv::Mat  matResizedImage;
-
+	
 	//size_t bpp = 8 * m_matVideoFrame.elemSize();
 	//assert((bpp == 8 || bpp == 24 || bpp == 32));
 
@@ -481,11 +482,86 @@ void CGroundTruthMakerDlg::ShowFrame()
 		free(pcDibBits);
 	}
 
+		
 	m_pVideoFrameImage->BitBlt(::GetDC(m_csVideoFrame.m_hWnd), 0, 0);
 	m_pVideoFrameImage->ReleaseDC();
 	delete m_pVideoFrameImage;
 	m_pVideoFrameImage = nullptr;
 	m_Cursor = TRUE;                                               //마우스 커서 바꾸기 위함.. 고려해보고 뺄 수 잇으면 빼는게 좋을듯!
+
+
+	//**************************************************************
+	// jeongmin's box draw using depth code
+	CDC *dc = GetDC();
+
+	CBrush brush;
+	brush.CreateStockObject(NULL_BRUSH);
+	CBrush *oldBrush = dc->SelectObject(&brush);
+	
+	for (int i = 0; i < (int)m_cCurMetadata.vecObjects.size(); i++)
+	{
+		COLORREF penColor = RGB(170, 170, 170);
+		if (m_cCurMetadata.vecObjects[i].id == m_nCurID)
+		{
+			penColor = RGB(255, 0, 0);
+		}
+		CPen pen;
+		pen.CreatePen(PS_DOT, 3, penColor);
+		CPen* oldPen = dc->SelectObject(&pen);
+
+		// box
+		dc->Rectangle(
+			m_cCurMetadata.vecObjects[i].objectBoxX,
+			m_cCurMetadata.vecObjects[i].objectBoxY,
+			m_cCurMetadata.vecObjects[i].objectBoxX + m_cCurMetadata.vecObjects[i].objectBoxW - 1,
+			m_cCurMetadata.vecObjects[i].objectBoxY + m_cCurMetadata.vecObjects[i].objectBoxH - 1);
+		//head
+		dc->Rectangle(
+			m_cCurMetadata.vecObjects[i].headX-1,
+			m_cCurMetadata.vecObjects[i].headY-1,
+			m_cCurMetadata.vecObjects[i].headX + 1,
+			m_cCurMetadata.vecObjects[i].headY + 1);
+		//left hand
+		dc->Rectangle(
+			m_cCurMetadata.vecObjects[i].leftHandX - 1,
+			m_cCurMetadata.vecObjects[i].leftHandY - 1,
+			m_cCurMetadata.vecObjects[i].leftHandX + 1,
+			m_cCurMetadata.vecObjects[i].leftHandY + 1);
+		//right hand
+		dc->Rectangle(
+			m_cCurMetadata.vecObjects[i].rightHandX - 1,
+			m_cCurMetadata.vecObjects[i].rightHandY - 1,
+			m_cCurMetadata.vecObjects[i].rightHandX + 1,
+			m_cCurMetadata.vecObjects[i].rightHandY + 1);
+		//left foot
+		dc->Rectangle(
+			m_cCurMetadata.vecObjects[i].leftFootX - 1,
+			m_cCurMetadata.vecObjects[i].leftFootY - 1,
+			m_cCurMetadata.vecObjects[i].leftFootX + 1,
+			m_cCurMetadata.vecObjects[i].leftFootY + 1);
+		//right foot
+		dc->Rectangle(
+			m_cCurMetadata.vecObjects[i].rightFootX - 1,
+			m_cCurMetadata.vecObjects[i].rightFootY - 1,
+			m_cCurMetadata.vecObjects[i].rightFootX + 1,
+			m_cCurMetadata.vecObjects[i].rightFootY + 1);
+
+		// ID
+		CString strID;
+		strID.Format(_T("%d"), m_cCurMetadata.vecObjects[i].id);
+		dc->SetTextColor(penColor);
+		dc->SetBkColor(RGB(0, 0, 0));
+		dc->TextOut(
+			m_cCurMetadata.vecObjects[i].objectBoxX,
+			m_cCurMetadata.vecObjects[i].objectBoxY,
+			strID);
+
+		dc->SelectObject(oldPen);
+	}
+	dc->SelectObject(oldBrush);
+	
+	Invalidate(FALSE);
+	//****************************************************************
 
 
 }
@@ -494,7 +570,7 @@ void CGroundTruthMakerDlg::ShowFrame()
 
 void CGroundTruthMakerDlg::OnBnClickedButtonNext()
 {
-	//this->SaveMetadata();
+	this->SaveMetadata();
 	this->ReadFrame();
 }
 
@@ -518,19 +594,19 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 {
 	// TODO: 여기에 메시지 처리기 코드를 추가 및/또는 기본값을 호출합니다.
 	CRect rect;
-	CRect FrameRect;
 	CString str;
-
-	GetDlgItem(IDC_VIEWER)->GetWindowRect(&rect); //사진 나오는 부분 바깥에 출력해주는 viewer 크기 전부다 받아오는 코드
+	GetDlgItem(IDC_VIEWER)->GetWindowRect(&rect); 
 	ScreenToClient(&rect);
 
 	if ((m_Cursor == TRUE) && (point.x >= rect.left) && (point.x <= rect.right) && (point.y >= rect.top) && (point.y <= rect.bottom) )
 	{
 		SetCursor(::LoadCursor(NULL, IDC_CROSS));
-		str.Format(_T("X = %d , Y = %d"),point.x,point.y);
-		SetDlgItemText(IDC_EDIT_ID, str);
-		str.Format(_T("rect_right = %d, rect_left = %d"), rect.right, rect.left);
-		SetDlgItemText(IDC_EDIT_CLASS, str);
+		//str.Format(_T("%d"), point.x);
+		//SetDlgItemText(IDC_EDIT_ID, str);
+		
+		//str.Format(_T("%d"), point.y);
+		//SetDlgItemText(IDC_EDIT_CLASS, str);
+		
 	}
 	else
 	{
@@ -548,6 +624,7 @@ void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 	// TODO: 여기에 메시지 처리기 코드를 추가 및/또는 기본값을 호출합니다.
 	prePosition = point;
 
+
 	CDialogEx::OnLButtonDown(nFlags, point);
 }
 
@@ -558,6 +635,11 @@ void CGroundTruthMakerDlg::OnLButtonUp(UINT nFlags, CPoint point)
 	// TODO: 여기에 메시지 처리기 코드를 추가 및/또는 기본값을 호출합니다.
 	SetPointValue(point);
 
+	//CClientDC dc(this);
+	//dc.Rectangle(prePosition.x, prePosition.y, point.x, point.y);
+	curPosition = point;                                             // 박스 그리기 위함
+
+	
 	CDialogEx::OnLButtonUp(nFlags, point);
 }
 
@@ -568,6 +650,7 @@ void CGroundTruthMakerDlg::OnClickedRadioBox(UINT msg)
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
 	UpdateData(TRUE);
 	UpdateData(FALSE);
+	if (m_radio == 0) { CGTObjectInfo newObject;};
 }
 
 
@@ -576,28 +659,37 @@ void CGroundTruthMakerDlg::OnClickedRadioBox(UINT msg)
 
 void CGroundTruthMakerDlg::SetPointValue(CPoint clickedpoint)
 {
-	CString str_x, str_y;
+	CString str,str_x, str_y;
+	
 	
 	if (m_Cursor == TRUE)
 	{
-
 		switch (m_radio)
 		{
 			
 			case 0:
+				GetDlgItemText(IDC_EDIT_ID, str);
+				m_nCurID = _ttoi(str);
+				newObject.id = m_nCurID;
+				
+				GetDlgItemText(IDC_EDIT_CLASS, str);
+				newObject.cls = _ttoi(str);
+
 				str_x.Format(_T("%d"), prePosition.x);
 				str_y.Format(_T("%d"), prePosition.y);
 				SetDlgItemText(IDC_STATIC_BOX_PRINT_X, str_x);
 				SetDlgItemText(IDC_STATIC_BOX_PRINT_Y, str_y);
-				//newObject.objectBoxX= prePosition.x;
-				//newObject.objectBoxY = prePosition.y;
+				newObject.objectBoxX= prePosition.x;
+				newObject.objectBoxY = prePosition.y;
 				
-				//newObject.objectBoxW = clickedpoint.x - prePosition.x;
-				//newObject.objectBoxH = clickedpoint.y - prePosition.y;
+				newObject.objectBoxW = clickedpoint.x - prePosition.x;
+				newObject.objectBoxH = clickedpoint.y - prePosition.y;
 				str_x.Format(_T("%d"), clickedpoint.x - prePosition.x);
 				str_y.Format(_T("%d"), clickedpoint.y - prePosition.y);
 				SetDlgItemText(IDC_STATIC_BOX_PRINT_W, str_x);
 				SetDlgItemText(IDC_STATIC_BOX_PRINT_H, str_y);
+
+				Showbox(prePosition.x,prePosition.y, clickedpoint.x - prePosition.x, clickedpoint.y - prePosition.y);
 				break;
 			
 			case 1:
@@ -605,8 +697,10 @@ void CGroundTruthMakerDlg::SetPointValue(CPoint clickedpoint)
 				str_y.Format(_T("%d"), clickedpoint.y);
 				SetDlgItemText(IDC_STATIC_HEAD_PRINT_X, str_x);
 				SetDlgItemText(IDC_STATIC_HEAD_PRINT_Y, str_y);
-				//newObject.headX = clickedpoint.x;
-				//newObject.headY = clickedpoint.y;
+				newObject.headX = clickedpoint.x;
+				newObject.headY = clickedpoint.y;
+
+				ShowPoint(clickedpoint);
 				break;
 
 			case 2:
@@ -614,8 +708,10 @@ void CGroundTruthMakerDlg::SetPointValue(CPoint clickedpoint)
 				str_y.Format(_T("%d"), clickedpoint.y);
 				SetDlgItemText(IDC_STATIC_L_HAND_PRINT_X, str_x);
 				SetDlgItemText(IDC_STATIC_L_HAND_PRINT_Y, str_y);
-				//newObject.leftHandX = clickedpoint.x;
-				//newObject.leftHandY = clickedpoint.y;
+				newObject.leftHandX = clickedpoint.x;
+				newObject.leftHandY = clickedpoint.y;
+
+				ShowPoint(clickedpoint);
 				break;
 
 			case 3:
@@ -623,8 +719,10 @@ void CGroundTruthMakerDlg::SetPointValue(CPoint clickedpoint)
 				str_y.Format(_T("%d"), clickedpoint.y);
 				SetDlgItemText(IDC_STATIC_R_HAND_PRINT_X, str_x);
 				SetDlgItemText(IDC_STATIC_R_HAND_PRINT_Y, str_y);
-				//newObject.rightHandX = clickedpoint.x;
-				//newObject.rightHandY = clickedpoint.y;
+				newObject.rightHandX = clickedpoint.x;
+				newObject.rightHandY = clickedpoint.y;
+
+				ShowPoint(clickedpoint);
 				break;
 
 			case 4:
@@ -632,8 +730,10 @@ void CGroundTruthMakerDlg::SetPointValue(CPoint clickedpoint)
 				str_y.Format(_T("%d"), clickedpoint.y);
 				SetDlgItemText(IDC_STATIC_L_FOOT_PRINT_X, str_x);
 				SetDlgItemText(IDC_STATIC_L_FOOT_PRINT_Y, str_y);
-				//newObject.leftFootX = clickedpoint.x;
-				//newObject.leftFootY = clickedpoint.y;
+				newObject.leftFootX = clickedpoint.x;
+				newObject.leftFootY = clickedpoint.y;
+
+				ShowPoint(clickedpoint);
 				break;
 
 			case 5:
@@ -641,32 +741,126 @@ void CGroundTruthMakerDlg::SetPointValue(CPoint clickedpoint)
 				str_y.Format(_T("%d"), clickedpoint.y);
 				SetDlgItemText(IDC_STATIC_R_FOOT_PRINT_X, str_x);
 				SetDlgItemText(IDC_STATIC_R_FOOT_PRINT_Y, str_y);
-				//newObject.rightFootX = clickedpoint.x;
-				//newObject.rightFootY = clickedpoint.y;
+				newObject.rightFootX = clickedpoint.x;
+				newObject.rightFootY = clickedpoint.y;
+
+				
+				bFound = false;
+				for (int i = 0; i < (int)m_cCurMetadata.vecObjects.size(); i++)
+				{
+					if (m_cCurMetadata.vecObjects[i].id == m_nCurID)
+					{
+						m_cCurMetadata.vecObjects[i] = newObject;
+						bFound = true;
+						break;
+					}
+				}
+				if (!bFound) { m_cCurMetadata.vecObjects.push_back(newObject); }
+				m_bDataChanged = true;
+				
+
+				ShowPoint(clickedpoint);
 				break;
 
-
+			default:
+				break;
 		}
 
 	}
 }
 
 
-/*
-void CGroundTruthMakerDlg::CreateMetadata()
-{
-	CGTObjectInfo newObject;
-	newObject.id = m_nCurID;
-}
-
 
 void CGroundTruthMakerDlg::SaveMetadata()
 {
 	if (m_bDataChanged)
 	{
-		//CString strMetadataFilePath = m_vecStrFilePath[m_nCurVideoFrame];
-		//strMetadataFilePath.Replace(_T(".png"), _T(".txt"));
+		strMetadataFilePath.Replace(_T("medium.avi"),_T("data.txt"));
 		m_cCurMetadata.writefile(strMetadataFilePath);
 	}
 }
-*/
+
+void CGroundTruthMakerDlg::Showbox(int x, int y, int w, int h)
+{
+	//**************************************************************
+	// jeongmin's box draw using depth code
+	CDC *dc = GetDC();
+	//m_csVideoFrame.GetClientRect(&clientRect);
+	//m_pVideoFrameImage->Draw(::GetDC(m_csVideoFrame.m_hWnd), 0, 0, clientRect.right, clientRect.bottom);
+
+	CBrush brush;
+	brush.CreateStockObject(NULL_BRUSH);
+	CBrush *oldBrush = dc->SelectObject(&brush);
+	/*
+	for (int i = 0; i < (int)m_cCurMetadata.vecObjects.size(); i++)
+	{
+		COLORREF penColor = RGB(170, 170, 170);
+		if (m_cCurMetadata.vecObjects[i].id == m_nCurID)
+		{
+			penColor = RGB(255, 0, 0);
+		}
+		CPen pen;
+		pen.CreatePen(PS_DOT, 3, penColor);
+		CPen* oldPen = dc->SelectObject(&pen);
+
+		// box
+		dc->Rectangle(
+			m_cCurMetadata.vecObjects[i].objectBoxX,
+			m_cCurMetadata.vecObjects[i].objectBoxY,
+			m_cCurMetadata.vecObjects[i].objectBoxW - 1,
+			m_cCurMetadata.vecObjects[i].objectBoxH - 1);
+
+		// ID
+		CString strID;
+		strID.Format(_T("%d"), m_cCurMetadata.vecObjects[i].id);
+		dc->SetTextColor(penColor);
+		dc->SetBkColor(RGB(0, 0, 0));
+		dc->TextOut(
+			m_cCurMetadata.vecObjects[i].objectBoxX,
+			m_cCurMetadata.vecObjects[i].objectBoxY,
+			strID);
+
+		dc->SelectObject(oldPen);
+	}
+	dc->SelectObject(oldBrush);
+	*/
+	
+	COLORREF penColor = RGB(255, 0, 0);
+
+	CPen pen;
+	pen.CreatePen(PS_DOT, 3, penColor);
+	CPen* oldPen = dc->SelectObject(&pen);
+
+	dc->Rectangle(x, y, x+w-1, y+h-1);
+	dc->SelectObject(oldPen);
+	dc->SelectObject(oldBrush);
+	
+	//****************************************************************
+}
+
+void CGroundTruthMakerDlg::ShowPoint(CPoint cent)
+{
+	//**************************************************************
+	// jeongmin's box draw using depth code
+	CDC *dc = GetDC();
+	
+	CBrush brush;
+	brush.CreateStockObject(NULL_BRUSH);
+	CBrush *oldBrush = dc->SelectObject(&brush);
+	
+
+	COLORREF penColor = RGB(255, 0, 0);
+
+	CPen pen;
+	pen.CreatePen(PS_DOT, 3, penColor);
+	CPen* oldPen = dc->SelectObject(&pen);
+
+	dc->Rectangle(cent.x - 1, cent.y - 1, cent.x + 1, cent.y + 1);
+	
+	dc->SelectObject(oldPen);
+	dc->SelectObject(oldBrush);
+
+	
+
+	//****************************************************************
+}
