@@ -19,33 +19,73 @@
 #define new DEBUG_NEW
 #endif
 
+bool objectIDAscend(const CGTObjectInfo obj1, const CGTObjectInfo obj2) { return obj1.id < obj2.id; }
+
+void CGTMetadata::insert(CGTObjectInfo newObject)
+{
+	bool bFound = false;
+	for (int i = 0; i < (int)vecObjects.size(); i++)
+	{
+		if (newObject.id == vecObjects[i].id)
+		{
+			vecObjects[i] = newObject;
+		}
+	}
+	if (!bFound) { vecObjects.push_back(newObject); }
+}
+
+CGTObjectInfo* CGTMetadata::GetObjectInfo(int id)
+{
+	bool bFound = false;
+	for (int i = 0; i < (int)vecObjects.size(); i++)
+	{
+		if (id == vecObjects[i].id)
+		{
+			return &vecObjects[i];
+		}
+	}
+	if (!bFound)
+	{
+		CGTObjectInfo newObject;
+		vecObjects.push_back(newObject);
+	}
+	return &vecObjects.back();
+}
+
 bool CGTMetadata::writefile(const CString strPath)
 {
 	try
 	{
 		std::ofstream outputFile;
 		outputFile.open(strPath);
+
+		std::vector<CGTObjectInfo> newObjects;
+		for (int i = 0; i < (int)vecObjects.size(); i++)
+		{
+			if (vecObjects[i].valid) { newObjects.push_back(vecObjects[i]); }
+		}
+		vecObjects = newObjects;
+
+		std::sort(newObjects.begin(), newObjects.end(), objectIDAscend);
+
 		outputFile << (int)vecObjects.size() << "\n";
 		for (int i = 0; i < (int)vecObjects.size(); i++)
 		{
+			if (!vecObjects[i].valid) { continue; }
 			outputFile << vecObjects[i].id << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].category << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].objectBoxX << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].objectBoxY << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].objectBoxW << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].objectBoxH << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].head.x << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].head.y << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].rightHand.x << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].rightHand.y << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].leftHand.x << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].leftHand.y << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].rightFoot.x << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].rightFoot.y << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].leftFoot.x << " ";
-			outputFile << std::fixed << std::setprecision(1) << vecObjects[i].leftFoot.y << "\n";
-
-
+			outputFile << vecObjects[i].category << " ";
+			outputFile
+				<< vecObjects[i].boundingBox.left << " "
+				<< vecObjects[i].boundingBox.top << " "
+				<< vecObjects[i].boundingBox.right << " "
+				<< vecObjects[i].boundingBox.bottom << " ";
+			for (int j = 0; j < NUM_PARTS; j++)
+			{
+				outputFile 
+					<< vecObjects[i].partPoints[j].x << " " 
+					<< vecObjects[i].partPoints[j].y << " ";
+			}		
+			outputFile << std::endl;
 		}
 		outputFile.close();
 	}
@@ -55,39 +95,48 @@ bool CGTMetadata::writefile(const CString strPath)
 	}
 	return true;
 }
-//*******************수정필요
+
 bool CGTMetadata::readfile(const CString strPath)
 {
 	CString strCurLine;
+	bool bCurIDFound = false;
 	try
 	{
 		CStdioFile file(strPath, CFile::modeRead | CFile::typeText);
 		file.ReadString(strCurLine);
-		this->numObject = _ttoi(strCurLine);
+		int numObject = _ttoi(strCurLine);
 		while (true)
 		{
 			if (!file.ReadString(strCurLine)) { break; }
+
 			CGTObjectInfo newObject;
+			newObject.valid = true;
+
 			int curPos = 0;
-			CString restoken = strCurLine.Tokenize(_T(" "), curPos);
+			CString restoken = strCurLine.Tokenize(_T(" "), curPos);			
 			newObject.id = _ttoi(restoken);
+			if (bCurIDFound == newObject.id) { bCurIDFound = true; }
 
 			restoken = strCurLine.Tokenize(_T(" "), curPos);
-			newObject.objectBoxX = _ttoi(restoken);
-
+			newObject.boundingBox.left = _ttoi(restoken);
 			restoken = strCurLine.Tokenize(_T(" "), curPos);
-			newObject.objectBoxY = _ttoi(restoken);
-
+			newObject.boundingBox.top = _ttoi(restoken);
 			restoken = strCurLine.Tokenize(_T(" "), curPos);
-			newObject.objectBoxW = _ttoi(restoken);
-
+			newObject.boundingBox.right = _ttoi(restoken);
 			restoken = strCurLine.Tokenize(_T(" "), curPos);
-			newObject.objectBoxH = _ttoi(restoken);
+			newObject.boundingBox.bottom = _ttoi(restoken);
 
+			for (int i = 0; i < NUM_PARTS; i++)
+			{
+				restoken = strCurLine.Tokenize(_T(" "), curPos);
+				newObject.partPoints[i].x = _ttoi(restoken);
+				restoken = strCurLine.Tokenize(_T(" "), curPos);
+				newObject.partPoints[i].y = _ttoi(restoken);
+			}
 			this->vecObjects.push_back(newObject);
 		}
 		file.Close();
-		assert(this->numObject == (int)this->vecObjects.size());
+		assert(numObject == (int)this->vecObjects.size());
 	}
 	catch (int e)
 	{
@@ -95,7 +144,6 @@ bool CGTMetadata::readfile(const CString strPath)
 	}
 	return true;
 }
-//******************************************************
 
 class CAboutDlg : public CDialogEx
 {
@@ -136,7 +184,7 @@ END_MESSAGE_MAP()
 //=========================================================================
 CGroundTruthMakerDlg::CGroundTruthMakerDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(IDD_GROUNDTRUTHMAKER_DIALOG, pParent)
-	, m_radio(9)                                                             //radio버튼이 초기화 되어있어서 잘못된 data들어오는걸 막기위함(9는 임의로 넣은거라 수정이 필요해 보임)
+	, m_nRadioButton(9)                                                             //radio버튼이 초기화 되어있어서 잘못된 data들어오는걸 막기위함(9는 임의로 넣은거라 수정이 필요해 보임)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -147,7 +195,7 @@ void CGroundTruthMakerDlg::DoDataExchange(CDataExchange* pDX)
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_VIEWER, m_csVideoFrame);
 	DDX_Control(pDX, IDC_SLIDER_VIDEO, m_ctrVideoSlider);
-	DDX_Radio(pDX, IDC_RADIO_BOX, (int&)m_radio);
+	DDX_Radio(pDX, IDC_RADIO_BOX, (int&)m_nRadioButton);
 }
 
 
@@ -163,7 +211,8 @@ BEGIN_MESSAGE_MAP(CGroundTruthMakerDlg, CDialogEx)
 	ON_WM_MOUSEMOVE()
 	ON_WM_LBUTTONDOWN()
 	ON_WM_LBUTTONUP()
-	ON_CONTROL_RANGE(BN_CLICKED,IDC_RADIO_BOX,IDC_RADIO_RIGHT_FOOT, &CGroundTruthMakerDlg::OnClickedRadioBox)
+	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO_BOX, IDC_RADIO_R_FOOT, &CGroundTruthMakerDlg::OnClickedRadioBox)
+	ON_BN_CLICKED(IDC_BUTTON_CLEAR, &CGroundTruthMakerDlg::OnBnClickedButtonClear)
 END_MESSAGE_MAP()
 
 
@@ -204,9 +253,10 @@ BOOL CGroundTruthMakerDlg::OnInitDialog()
 	m_ctrVideoSlider.SetPageSize(100);  // moving interval of page up/down keys 
 
 	CButton* pButton = (CButton*)GetDlgItem(IDC_RADIO_BOX); //라디오 버튼 처음에 선택 안되어있게 하기위함.
-	pButton->SetCheck(false);					
+	pButton->SetCheck(false);
 
-
+	m_nCurID = 0;	
+	m_ptCurObject = m_cCurMetadata.GetObjectInfo(m_nCurID);
 
 	return TRUE;
 }
@@ -278,7 +328,9 @@ void CGroundTruthMakerDlg::OnBnClickedButtonLoad()
 	if (IDOK == dlg.DoModal())
 	{
 		CString strPathName = dlg.GetPathName();
-		strMetadataFilePath = strPathName;
+		m_strVideoName = dlg.GetFileName();
+		m_strMetadataFileDir = strPathName;		
+		m_strMetadataFileDir.Truncate(m_strMetadataFileDir.ReverseFind('\\'));
 		CT2CA pszConvertedAnsiString(strPathName);
 		this->OpenVideo(std::string(pszConvertedAnsiString));
 	}
@@ -348,11 +400,13 @@ bool CGroundTruthMakerDlg::ReadFrame(int position)
 	(*m_pVideoCapture) >> m_matVideoFrame;
 	//m_nCurVideoFrame = (int)m_pVideoCapture->get(CV_CAP_PROP_FRAME_COUNT);
 	m_ctrVideoSlider.SetPos(m_nCurVideoFrame);
-	CString buff;	buff.Format(_T("%d"), m_nCurVideoFrame);
+	CString buff; buff.Format(_T("%d"), m_nCurVideoFrame);
 	SetDlgItemText(IDC_STATIC_FI_FRAME_INDEX, buff);
 
 	// TODO: display time
 	//SetDlgItemText(IDC_STATIC_FI_TIME, buff);
+
+	m_ptCurObject = m_cCurMetadata.GetObjectInfo(m_nCurID);
 
 	this->ShowFrame();
 
@@ -481,14 +535,12 @@ void CGroundTruthMakerDlg::ShowFrame()
 			pcDibBits, &bitInfo, DIB_RGB_COLORS, SRCCOPY);
 		free(pcDibBits);
 	}
-
 		
 	m_pVideoFrameImage->BitBlt(::GetDC(m_csVideoFrame.m_hWnd), 0, 0);
 	m_pVideoFrameImage->ReleaseDC();
 	delete m_pVideoFrameImage;
 	m_pVideoFrameImage = nullptr;
 	m_Cursor = TRUE;                                               //마우스 커서 바꾸기 위함.. 고려해보고 뺄 수 잇으면 빼는게 좋을듯!
-
 
 	//**************************************************************
 	// jeongmin's box draw using depth code
@@ -509,63 +561,38 @@ void CGroundTruthMakerDlg::ShowFrame()
 		pen.CreatePen(PS_DOT, 3, penColor);
 		CPen* oldPen = dc->SelectObject(&pen);
 
-		// box
+		// bounding box
 		dc->Rectangle(
-			m_cCurMetadata.vecObjects[i].objectBoxX,
-			m_cCurMetadata.vecObjects[i].objectBoxY,
-			m_cCurMetadata.vecObjects[i].objectBoxX + m_cCurMetadata.vecObjects[i].objectBoxW - 1,
-			m_cCurMetadata.vecObjects[i].objectBoxY + m_cCurMetadata.vecObjects[i].objectBoxH - 1);
-		//head
-		dc->Rectangle(
-			m_cCurMetadata.vecObjects[i].head.x-1,
-			m_cCurMetadata.vecObjects[i].head.y-1,
-			m_cCurMetadata.vecObjects[i].head.x + 1,
-			m_cCurMetadata.vecObjects[i].head.y + 1);
-		//left hand
-		dc->Rectangle(
-			m_cCurMetadata.vecObjects[i].leftHand.x - 1,
-			m_cCurMetadata.vecObjects[i].leftHand.y - 1,
-			m_cCurMetadata.vecObjects[i].leftHand.x + 1,
-			m_cCurMetadata.vecObjects[i].leftHand.y + 1);
-		//right hand
-		dc->Rectangle(
-			m_cCurMetadata.vecObjects[i].rightHand.x - 1,
-			m_cCurMetadata.vecObjects[i].rightHand.y - 1,
-			m_cCurMetadata.vecObjects[i].rightHand.x + 1,
-			m_cCurMetadata.vecObjects[i].rightHand.y + 1);
-		//left foot
-		dc->Rectangle(
-			m_cCurMetadata.vecObjects[i].leftFoot.x - 1,
-			m_cCurMetadata.vecObjects[i].leftFoot.y - 1,
-			m_cCurMetadata.vecObjects[i].leftFoot.x + 1,
-			m_cCurMetadata.vecObjects[i].leftFoot.y + 1);
-		//right foot
-		dc->Rectangle(
-			m_cCurMetadata.vecObjects[i].rightFoot.x - 1,
-			m_cCurMetadata.vecObjects[i].rightFoot.y - 1,
-			m_cCurMetadata.vecObjects[i].rightFoot.x + 1,
-			m_cCurMetadata.vecObjects[i].rightFoot.y + 1);
+			m_cCurMetadata.vecObjects[i].boundingBox.left,
+			m_cCurMetadata.vecObjects[i].boundingBox.top,
+			m_cCurMetadata.vecObjects[i].boundingBox.right,
+			m_cCurMetadata.vecObjects[i].boundingBox.bottom);
 
-		// ID
+		// body parts
+		for (int j = 0; j < NUM_PARTS; j++)
+		{
+			dc->Rectangle(
+				m_cCurMetadata.vecObjects[i].partPoints[j].x - 1,
+				m_cCurMetadata.vecObjects[i].partPoints[j].y - 1,
+				m_cCurMetadata.vecObjects[i].partPoints[j].x + 1,
+				m_cCurMetadata.vecObjects[i].partPoints[j].y + 1);
+		}	
+
+		// draw labels
 		CString strID;
 		strID.Format(_T("%d"), m_cCurMetadata.vecObjects[i].id);
 		dc->SetTextColor(penColor);
 		dc->SetBkColor(RGB(0, 0, 0));
 		dc->TextOut(
-			m_cCurMetadata.vecObjects[i].objectBoxX,
-			m_cCurMetadata.vecObjects[i].objectBoxY,
+			m_cCurMetadata.vecObjects[i].boundingBox.left,
+			m_cCurMetadata.vecObjects[i].boundingBox.top - 15,	// 13) 저 좌표값을 움직이면 된다. (하드 코딩한것 고치기)
 			strID);
-
 		dc->SelectObject(oldPen);
 	}
 	dc->SelectObject(oldBrush);
-	
 
-	
 	Invalidate(FALSE);
 	//****************************************************************
-
-
 }
 
 
@@ -573,7 +600,7 @@ void CGroundTruthMakerDlg::ShowFrame()
 void CGroundTruthMakerDlg::OnBnClickedButtonNext()
 {
 	this->SaveMetadata();
-	this->ReadFrame();
+	this->ReadFrame(m_nCurVideoFrame + 1);
 }
 
 void CGroundTruthMakerDlg::OnBnClickedButtonPrev()
@@ -618,7 +645,7 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	// TODO: 여기에 메시지 처리기 코드를 추가 및/또는 기본값을 호출합니다.
-	prePosition = point;
+	m_ptPrePosition = point;
 
 	CDialogEx::OnLButtonDown(nFlags, point);
 }
@@ -640,131 +667,68 @@ void CGroundTruthMakerDlg::OnClickedRadioBox(UINT msg)
 	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
 	UpdateData(TRUE);
 	UpdateData(FALSE);
-	if (m_radio == 0) { CGTObjectInfo newObject;};
+	if (m_nRadioButton == 0) { CGTObjectInfo newObject;};
 }
 
 
 
 void CGroundTruthMakerDlg::SetPointValue(CPoint clickedpoint)
 {
-	CString str,str_x, str_y;
+	CString strStatic;
 	
-	switch (m_radio)
+	CRect rect;
+	GetDlgItem(IDC_VIEWER)->GetWindowRect(&rect);
+	ScreenToClient(&rect);
+
+	if (m_Cursor 
+		&& (clickedpoint.x >= rect.left) && (clickedpoint.x <= rect.right) 
+		&& (clickedpoint.y >= rect.top) && (clickedpoint.y <= rect.bottom)
+		&& (m_ptPrePosition.x >= rect.left) && (m_ptPrePosition.x <= rect.right) 
+		&& (m_ptPrePosition.y >= rect.top) && (m_ptPrePosition.y <= rect.bottom))
 	{
-			
-		case 0:
-			GetDlgItemText(IDC_EDIT_ID, str);
-			m_nCurID = _ttoi(str);
-			newObject.id = m_nCurID;
-				
-			GetDlgItemText(IDC_EDIT_CLASS, str);
-			newObject.category = _ttoi(str);
+		m_bDataChanged = true;
 
-			str_x.Format(_T("%d"), prePosition.x);
-			str_y.Format(_T("%d"), prePosition.y);
-			SetDlgItemText(IDC_STATIC_BOX_PRINT_X, str_x);
-			SetDlgItemText(IDC_STATIC_BOX_PRINT_Y, str_y);
-			newObject.objectBoxX= prePosition.x;
-			newObject.objectBoxY = prePosition.y;
-				
-			newObject.objectBoxW = clickedpoint.x - prePosition.x;
-			newObject.objectBoxH = clickedpoint.y - prePosition.y;
-			str_x.Format(_T("%d"), clickedpoint.x - prePosition.x);
-			str_y.Format(_T("%d"), clickedpoint.y - prePosition.y);
-			SetDlgItemText(IDC_STATIC_BOX_PRINT_W, str_x);
-			SetDlgItemText(IDC_STATIC_BOX_PRINT_H, str_y);
-
-			Showbox(prePosition.x,prePosition.y, clickedpoint.x - prePosition.x, clickedpoint.y - prePosition.y);
-			break;
-			
-		case 1:
-			str_x.Format(_T("%d"), clickedpoint.x);
-			str_y.Format(_T("%d"), clickedpoint.y);
-			SetDlgItemText(IDC_STATIC_HEAD_PRINT_X, str_x);
-			SetDlgItemText(IDC_STATIC_HEAD_PRINT_Y, str_y);
-			newObject.head = clickedpoint;
-
-			Showbox(clickedpoint.x, clickedpoint.y, 1, 1);
-			break;
-
-		case 2:
-			str_x.Format(_T("%d"), clickedpoint.x);
-			str_y.Format(_T("%d"), clickedpoint.y);
-			SetDlgItemText(IDC_STATIC_L_HAND_PRINT_X, str_x);
-			SetDlgItemText(IDC_STATIC_L_HAND_PRINT_Y, str_y);
-			newObject.leftHand = clickedpoint;
-			
-			Showbox(clickedpoint.x, clickedpoint.y, 1, 1);
-			break;
-
-		case 3:
-			str_x.Format(_T("%d"), clickedpoint.x);
-			str_y.Format(_T("%d"), clickedpoint.y);
-			SetDlgItemText(IDC_STATIC_R_HAND_PRINT_X, str_x);
-			SetDlgItemText(IDC_STATIC_R_HAND_PRINT_Y, str_y);
-			newObject.rightHand = clickedpoint;
-
-			Showbox(clickedpoint.x, clickedpoint.y, 1, 1);
-			break;
-
-		case 4:
-			str_x.Format(_T("%d"), clickedpoint.x);
-			str_y.Format(_T("%d"), clickedpoint.y);
-			SetDlgItemText(IDC_STATIC_L_FOOT_PRINT_X, str_x);
-			SetDlgItemText(IDC_STATIC_L_FOOT_PRINT_Y, str_y);
-			newObject.leftFoot = clickedpoint;
-
-			Showbox(clickedpoint.x, clickedpoint.y, 1, 1);
-			break;
-
-		case 5:
-			str_x.Format(_T("%d"), clickedpoint.x);
-			str_y.Format(_T("%d"), clickedpoint.y);
-			SetDlgItemText(IDC_STATIC_R_FOOT_PRINT_X, str_x);
-			SetDlgItemText(IDC_STATIC_R_FOOT_PRINT_Y, str_y);
-			newObject.rightFoot = clickedpoint;
-
-			//*******************************************************************
-			//수정 필요! newObject내에 값들이 다 입력 되었는지 확인하고 이부분이 동작하도록 만들어야 함! 
-			bFound = false;
-			for (int i = 0; i < (int)m_cCurMetadata.vecObjects.size(); i++)
-			{
-				if (m_cCurMetadata.vecObjects[i].id == m_nCurID)
-				{
-					m_cCurMetadata.vecObjects[i] = newObject;
-					bFound = true;
-					break;
-				}
-			}
-			if (!bFound) { m_cCurMetadata.vecObjects.push_back(newObject); }
-			m_bDataChanged = true;
-			//*********************************************************************
-			
-			Showbox(clickedpoint.x, clickedpoint.y, 1, 1);
-			break;
-
-		default:
-			break;
+		// bounding box
+		if (m_nRadioButton == IDC_RADIO_BOX)
+		{			
+			m_ptCurObject->boundingBox.left = m_ptPrePosition.x;
+			m_ptCurObject->boundingBox.top = m_ptPrePosition.y;
+			m_ptCurObject->boundingBox.right = clickedpoint.x;
+			m_ptCurObject->boundingBox.bottom = clickedpoint.y;
+			strStatic.Format(_T("(L, T, R, B) = (%d, %d, %d, %d)"),
+				m_ptCurObject->boundingBox.left,
+				m_ptCurObject->boundingBox.top,
+				m_ptCurObject->boundingBox.right,
+				m_ptCurObject->boundingBox.bottom);
+			SetDlgItemText(IDC_STATIC_BOX_INFO, strStatic);
+			m_ptCurObject->valid = true;
+		}
+		// part box
+		else if (m_nRadioButton > IDC_RADIO_BOX)
+		{
+			UINT part_idx = m_nRadioButton - IDC_RADIO_BOX;
+			m_ptCurObject->partPoints[part_idx] = clickedpoint;
+			strStatic.Format(_T("(X, Y) = (%d, %d)"),
+				m_ptCurObject->partPoints[part_idx].x,
+				m_ptCurObject->partPoints[part_idx].y);
+			SetDlgItemText(IDC_STATIC_BOX_INFO + part_idx, strStatic);
+			m_ptCurObject->valid = true;
+		}
+		else
+		{
+			// error
+		}
 	}
-
-
 }
-
 
 
 void CGroundTruthMakerDlg::SaveMetadata()
 {
-	CString str;
-	CString buff;
 	if (m_bDataChanged)
-	{	
-		str.Format(_T(""));
-		strMetadataFilePath.Replace(_T("medium.avi"),str);
-		buff = strMetadataFilePath;
-
-		str.Format(_T("%d.txt"),m_nCurVideoFrame);
-		buff.Append(str);
-		m_cCurMetadata.writefile(buff);
+	{			
+		CString strMetadataFilePath;
+		strMetadataFilePath.Format(_T("%s\\%s_%06d"), m_strMetadataFileDir, m_strVideoName, m_nCurVideoFrame);
+		m_cCurMetadata.writefile(strMetadataFilePath);
 	}
 }
 
@@ -798,93 +762,129 @@ void CGroundTruthMakerDlg::Showbox(int x, int y, int width, int height)
 	//****************************************************************
 }
 
+//
+//BOOL CGroundTruthMakerDlg::PreTranslateMessage(MSG *pMsg, CPoint selectedPoint)
+//{
+//	CString str_x, str_y;
+//
+//	if (WM_KEYDOWN == pMsg->message)
+//	{
+//		switch (pMsg->wParam)
+//		{
+//		case VK_LEFT:
+//			buffKey.x--;
+//			ShowFrame();
+//			break;
+//		case VK_RIGHT:
+//			buffKey.x++;
+//			ShowFrame();
+//			break;
+//		case VK_UP:
+//			buffKey.y--;
+//			ShowFrame();
+//			break;
+//		case VK_DOWN:
+//			buffKey.y++;
+//			ShowFrame();
+//			break;
+//		default:
+//			// do nothing
+//			break;
+//		}
+//	}
+//	else if (WM_CHAR == pMsg->message)
+//	{
+//
+//	}
+//	//vector error가 난다 어떤 이유인지 체크
+//	/*
+//	str_x.Format(_T("%d"),m_cCurMetadata.vecObjects[m_nCurID - 1].objectBoxX);
+//	str_y.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].objectBoxY);
+//	SetDlgItemText(IDC_STATIC_BOX_PRINT_X, str_x);
+//	SetDlgItemText(IDC_STATIC_BOX_PRINT_Y, str_y);
+//
+//	str_x.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].objectBoxW);
+//	str_y.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].objectBoxH);
+//	SetDlgItemText(IDC_STATIC_BOX_PRINT_W, str_x);
+//	SetDlgItemText(IDC_STATIC_BOX_PRINT_H, str_y);
+//
+//	str_x.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].head.x);
+//	str_y.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].head.y);
+//	SetDlgItemText(IDC_STATIC_HEAD_PRINT_X, str_x);
+//	SetDlgItemText(IDC_STATIC_HEAD_PRINT_Y, str_y);
+//
+//	str_x.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].leftHand.x);
+//	str_y.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].leftHand.y);
+//	SetDlgItemText(IDC_STATIC_L_HAND_PRINT_X, str_x);
+//	SetDlgItemText(IDC_STATIC_L_HAND_PRINT_Y, str_y);
+//
+//	str_x.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].rightHand.x);
+//	str_y.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].rightHand.y);
+//	SetDlgItemText(IDC_STATIC_R_HAND_PRINT_X, str_x);
+//	SetDlgItemText(IDC_STATIC_R_HAND_PRINT_Y, str_y);
+//
+//	str_x.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].leftFoot.x);
+//	str_y.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].leftFoot.y);
+//	SetDlgItemText(IDC_STATIC_L_FOOT_PRINT_X, str_x);
+//	SetDlgItemText(IDC_STATIC_L_FOOT_PRINT_Y, str_y);
+//
+//	str_x.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].rightFoot.x);
+//	str_y.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].rightFoot.y);
+//	SetDlgItemText(IDC_STATIC_R_FOOT_PRINT_X, str_x);
+//	SetDlgItemText(IDC_STATIC_R_FOOT_PRINT_Y, str_y);
+//	*/
+//	return CDialog::PreTranslateMessage(pMsg);
+//}
+//
+//BOOL CGroundTruthMakerDlg::PreTranslateBoxMessage(MSG *pMsg)		//PreTranslateMessage의 재정의된 함수라서 뭔가 문제가 있지는 않은가? 이 함수 다시하는게 좋지 않을까?
+//{
+//
+//	if (WM_CHAR == pMsg->message)
+//	{
+//		switch (pMsg->wParam)
+//		{
+//
+//			case 'W':
+//			case 'w':
+//				*buffKey = m_cCurMetadata.vecObjects[m_nCurID - 1].objectBoxXY;
+//				break;
+//
+//			case 'A':
+//			case 'a':
+//				*buffKey = m_cCurMetadata.vecObjects[m_nCurID - 1].leftHand;
+//				break;
+//
+//			case 'S':
+//			case 's':
+//				*buffKey = m_cCurMetadata.vecObjects[m_nCurID - 1].head;
+//				break;
+//
+//			case 'D':
+//			case 'd':
+//				*buffKey = m_cCurMetadata.vecObjects[m_nCurID - 1].rightHand;
+//				break;
+//
+//			case 'Z':
+//			case 'z':
+//				*buffKey = m_cCurMetadata.vecObjects[m_nCurID - 1].leftFoot;
+//				break;
+//
+//			case 'X':
+//			case 'x':
+//				*buffKey = m_cCurMetadata.vecObjects[m_nCurID - 1].rightFoot;
+//				break;
+//
+//			default:
+//				*buffKey = ;
+//				break;
+//		}
+//	}
+//	return CDialog::PreTranslateMessage(pMsg);
+//}
 
-BOOL CGroundTruthMakerDlg::PreTranslateMessage(MSG *pMsg)
+
+
+void CGroundTruthMakerDlg::OnBnClickedButtonClear()
 {
-	CString str_x, str_y;
-
-	if (WM_KEYDOWN == pMsg->message)
-	{
-		switch (pMsg->wParam)
-		{
-		case VK_LEFT:
-			m_cCurMetadata.vecObjects[m_nCurID - 1].objectBoxX--;
-			m_cCurMetadata.vecObjects[m_nCurID - 1].head.x--;
-			m_cCurMetadata.vecObjects[m_nCurID - 1].leftHand.x--;
-			m_cCurMetadata.vecObjects[m_nCurID - 1].rightHand.x--;
-			m_cCurMetadata.vecObjects[m_nCurID - 1].leftFoot.x--;
-			m_cCurMetadata.vecObjects[m_nCurID - 1].rightFoot.x--;
-			ShowFrame();
-			break;
-		case VK_RIGHT:
-			m_cCurMetadata.vecObjects[m_nCurID - 1].objectBoxX++;
-			m_cCurMetadata.vecObjects[m_nCurID - 1].head.x++;
-			m_cCurMetadata.vecObjects[m_nCurID - 1].leftHand.x++;
-			m_cCurMetadata.vecObjects[m_nCurID - 1].rightHand.x++;
-			m_cCurMetadata.vecObjects[m_nCurID - 1].leftFoot.x++;
-			m_cCurMetadata.vecObjects[m_nCurID - 1].rightFoot.x++;
-			ShowFrame();
-			break;
-		case VK_UP:
-			m_cCurMetadata.vecObjects[m_nCurID - 1].objectBoxY--;
-			m_cCurMetadata.vecObjects[m_nCurID - 1].head.y--;
-			m_cCurMetadata.vecObjects[m_nCurID - 1].leftHand.y--;
-			m_cCurMetadata.vecObjects[m_nCurID - 1].rightHand.y--;
-			m_cCurMetadata.vecObjects[m_nCurID - 1].leftFoot.y--;
-			m_cCurMetadata.vecObjects[m_nCurID - 1].rightFoot.y--;
-			ShowFrame();
-			break;
-		case VK_DOWN:
-
-			m_cCurMetadata.vecObjects[m_nCurID - 1].objectBoxY++;
-			m_cCurMetadata.vecObjects[m_nCurID - 1].head.y++;
-			m_cCurMetadata.vecObjects[m_nCurID - 1].leftHand.y++;
-			m_cCurMetadata.vecObjects[m_nCurID - 1].rightHand.y++;
-			m_cCurMetadata.vecObjects[m_nCurID - 1].leftFoot.y++;
-			m_cCurMetadata.vecObjects[m_nCurID - 1].rightFoot.y++;
-			ShowFrame();
-			break;
-		default:
-			// do nothing
-			break;
-		}
-	}
-	//vector error가 난다 어떤 이유인지 체크
-	/*
-	str_x.Format(_T("%d"),m_cCurMetadata.vecObjects[m_nCurID - 1].objectBoxX);
-	str_y.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].objectBoxY);
-	SetDlgItemText(IDC_STATIC_BOX_PRINT_X, str_x);
-	SetDlgItemText(IDC_STATIC_BOX_PRINT_Y, str_y);
-
-	str_x.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].objectBoxW);
-	str_y.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].objectBoxH);
-	SetDlgItemText(IDC_STATIC_BOX_PRINT_W, str_x);
-	SetDlgItemText(IDC_STATIC_BOX_PRINT_H, str_y);
-
-	str_x.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].head.x);
-	str_y.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].head.y);
-	SetDlgItemText(IDC_STATIC_HEAD_PRINT_X, str_x);
-	SetDlgItemText(IDC_STATIC_HEAD_PRINT_Y, str_y);
-
-	str_x.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].leftHand.x);
-	str_y.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].leftHand.y);
-	SetDlgItemText(IDC_STATIC_L_HAND_PRINT_X, str_x);
-	SetDlgItemText(IDC_STATIC_L_HAND_PRINT_Y, str_y);
-
-	str_x.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].rightHand.x);
-	str_y.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].rightHand.y);
-	SetDlgItemText(IDC_STATIC_R_HAND_PRINT_X, str_x);
-	SetDlgItemText(IDC_STATIC_R_HAND_PRINT_Y, str_y);
-
-	str_x.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].leftFoot.x);
-	str_y.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].leftFoot.y);
-	SetDlgItemText(IDC_STATIC_L_FOOT_PRINT_X, str_x);
-	SetDlgItemText(IDC_STATIC_L_FOOT_PRINT_Y, str_y);
-
-	str_x.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].rightFoot.x);
-	str_y.Format(_T("%d"), m_cCurMetadata.vecObjects[m_nCurID - 1].rightFoot.y);
-	SetDlgItemText(IDC_STATIC_R_FOOT_PRINT_X, str_x);
-	SetDlgItemText(IDC_STATIC_R_FOOT_PRINT_Y, str_y);
-	*/
-	return CDialog::PreTranslateMessage(pMsg);
+	m_ptCurObject->Init();
 }

@@ -11,37 +11,44 @@
 #include "opencv2/opencv.hpp"
 #include <vector>
 
+enum PARTS { BOUNDING_BOX = -1, PART_HEAD = 0, PART_LEFT_HAND, PART_RIGHT_HAND, PART_LEFT_FOOT, PART_RIGHT_FOOT, NUM_PARTS };
+
 class CGTObjectInfo
 {
 public:
-	CGTObjectInfo() : id(0), objectBoxX(0), objectBoxY(0), objectBoxW(0), objectBoxH(0), size(0) {}
-	
+	CGTObjectInfo()
+	{
+		Init();
+	}
+	void Init()
+	{
+		id = 0;
+		category = 0;
+		valid = false;
+		for (int i = 0; i < NUM_PARTS; i++)
+		{
+			partPoints[i] = CPoint(0, 0);
+		}
+	}
+	bool valid;
 	int id;
 	int category;
-	int objectBoxX;
-	int objectBoxY;
-	int objectBoxW;
-	int objectBoxH;
-	CPoint head;
-	CPoint rightHand;
-	CPoint leftHand;
-	CPoint rightFoot;
-	CPoint leftFoot;
+	CRect boundingBox;
+	CPoint partPoints[NUM_PARTS];
 };
 
 class CGTMetadata
 {
 public:
-	CGTMetadata() : numObject(0), frameIndex(0) {}
+	CGTMetadata() : frameIndex(0) {}
 	void clear()
-	{
-		this->numObject = 0;
+	{		
 		this->vecObjects.clear();
 	}
+	void insert(CGTObjectInfo newObject);
+	CGTObjectInfo *GetObjectInfo(int id);
 	bool writefile(const CString strPath);
-	bool readfile(const CString strPath);
-
-	int numObject;
+	bool readfile(const CString strPath);	
 	int frameIndex;
 	std::vector<CGTObjectInfo> vecObjects;
 };
@@ -72,6 +79,14 @@ protected:
 	DECLARE_MESSAGE_MAP()
 public:
 	afx_msg void OnBnClickedButtonLoad();
+	afx_msg void OnDestroy();
+	afx_msg void OnBnClickedButtonNext();
+	afx_msg void OnBnClickedButtonPrev();
+	afx_msg void OnNMReleasedcaptureSliderVideo(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnClickedRadioBox(UINT msg);
 
 protected:
 	bool OpenVideo(const std::string strVideoPath);
@@ -79,6 +94,9 @@ protected:
 	bool ReadFrame(int position = -2);
 	void ShowFrame();
 	void AdjustVideSlider(int position);
+	void SaveMetadata();
+	void CGroundTruthMakerDlg::Showbox(int x, int y, int width, int height);
+	void SetPointValue(CPoint clickedpoint);
 
 	//---------------------------------------------------------------------
 	// VARIABLES
@@ -86,10 +104,11 @@ protected:
 	bool m_Cursor;
 	int top, bottom, right, left;
 	bool m_bDataChanged;
-	CGTMetadata m_cCurMetadata;
-	CGTObjectInfo newObject;
-	CString strMetadataFilePath;
-protected:
+	CGTMetadata m_cCurMetadata;	
+	CGTObjectInfo* m_ptCurObject;
+	CString m_strVideoName;
+	CString m_strMetadataFileDir;
+	
 	HICON m_hIcon;
 
 	// Video streaming related
@@ -105,21 +124,9 @@ protected:
 
 	// slider
 	CSliderCtrl m_ctrVideoSlider;
-public:
-	afx_msg void OnDestroy();
-	afx_msg void OnBnClickedButtonNext();
-	afx_msg void OnBnClickedButtonPrev();
-	afx_msg void OnNMReleasedcaptureSliderVideo(NMHDR *pNMHDR, LRESULT *pResult);
-	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
-	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
-	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
-	afx_msg void OnClickedRadioBox(UINT msg);
-	BOOL CGroundTruthMakerDlg::PreTranslateMessage(MSG *pMsg);
-	void SaveMetadata();
-	void CGroundTruthMakerDlg::Showbox(int x, int y, int width, int height);
-	void SetPointValue(CPoint clickedpoint);
 
-	UINT m_radio;
-	CPoint prePosition;
-	bool bFound = false;
+	CPoint m_ptPrePosition;
+	UINT m_nRadioButton;
+public:
+	afx_msg void OnBnClickedButtonClear();
 };
