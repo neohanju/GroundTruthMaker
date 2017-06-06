@@ -10,26 +10,32 @@
 
 #include "opencv2/opencv.hpp"
 #include <vector>
+#include "afxwin.h"
 
-enum PARTS { BOUNDING_BOX = -1, PART_HEAD = 0, PART_LEFT_HAND, PART_RIGHT_HAND, PART_LEFT_FOOT, PART_RIGHT_FOOT, NUM_PARTS };
+enum PARTS { 
+	BOUNDING_BOX = -1, 
+	PART_HEAD = 0, 
+	PART_LEFT_HAND, 
+	PART_RIGHT_HAND, 
+	PART_LEFT_FOOT, 
+	PART_RIGHT_FOOT, 
+	NUM_PARTS 
+};
+
+enum GUI_STATE {
+	GUI_STATE_IDLE = 0,
+	GUI_STATE_SET_BOX_LT,
+	GUI_STATE_SET_BOX_RB,
+	GUI_STATE_SET_BODY_PART,
+	GUI_STATE_ADJUST_BODY_BOX,
+	NUM_GUI_STATE
+};
 
 class CGTObjectInfo
 {
 public:
-	CGTObjectInfo()
-	{
-		Init();
-	}
-	void Init()
-	{
-		id = 0;
-		category = 0;
-		valid = false;
-		for (int i = 0; i < NUM_PARTS; i++)
-		{
-			partPoints[i] = CPoint(0, 0);
-		}
-	}
+	CGTObjectInfo() { Init(); }
+	void Init();
 	bool valid;
 	int id;
 	int category;
@@ -41,10 +47,7 @@ class CGTMetadata
 {
 public:
 	CGTMetadata() : frameIndex(0) {}
-	void clear()
-	{		
-		this->vecObjects.clear();
-	}
+	void clear() { this->vecObjects.clear(); }
 	void insert(CGTObjectInfo newObject);
 	CGTObjectInfo *GetObjectInfo(int id);
 	bool writefile(const CString strPath);
@@ -87,6 +90,7 @@ public:
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnClickedRadioBox(UINT msg);
+	afx_msg void OnBnClickedButtonClear();
 
 protected:
 	bool OpenVideo(const std::string strVideoPath);
@@ -96,12 +100,10 @@ protected:
 	void AdjustVideSlider(int position);
 	void SaveMetadata();
 	void CGroundTruthMakerDlg::Showbox(int x, int y, int width, int height);
-	void SetPointValue(CPoint clickedpoint);
 
 	//---------------------------------------------------------------------
 	// VARIABLES
-	//---------------------------------------------------------------------
-	bool m_Cursor;
+	//---------------------------------------------------------------------	
 	int top, bottom, right, left;
 	bool m_bDataChanged;
 	CGTMetadata m_cCurMetadata;	
@@ -114,6 +116,7 @@ protected:
 	// Video streaming related
 	CStatic m_csVideoFrame;
 	CImage* m_pVideoFrameImage;
+	CRect m_rectViewer;
 
 	bool m_bVideoOnRead;
 	cv::VideoCapture *m_pVideoCapture;	
@@ -125,8 +128,9 @@ protected:
 	// slider
 	CSliderCtrl m_ctrVideoSlider;
 
-	CPoint m_ptPrePosition;
 	UINT m_nRadioButton;
-public:
-	afx_msg void OnBnClickedButtonClear();
+	CComboBox m_comboCategory;	
+
+	GUI_STATE m_nCurrState;
+	GUI_STATE m_nNextState;
 };
