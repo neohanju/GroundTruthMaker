@@ -14,6 +14,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include "kcftracker.hpp"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -21,6 +22,23 @@
 
 bool objectIDAscend(const CGTObjectInfo obj1, const CGTObjectInfo obj2) { return obj1.id < obj2.id; }
 
+cv::Rect CRect2CVRect(CRect rect)
+{
+	float x = (float)rect.left;
+	float y = (float)rect.top;
+	float w = (float)(rect.right - rect.left + 1);
+	float h = (float)(rect.bottom - rect.top + 1);
+	return cv::Rect(x, y, w, h);
+}
+
+CRect CVRect2CRect(cv::Rect rect)
+{
+	int left = (int)rect.x;
+	int top = (int)rect.y;
+	int right = (int)(rect.x + rect.width - 1);
+	int bottom = (int)(rect.y + rect.height - 1);
+	return CRect(left, top, right, bottom);
+}
 
 //=========================================================================
 // CGTObjectInfo
@@ -388,7 +406,7 @@ bool CGroundTruthMakerDlg::OpenVideo(const std::string strVideoPath)
 		m_pVideoCapture = new cv::VideoCapture(strVideoPath);
 		m_bVideoOnRead = true;
 		m_nNumVideoFrames = (int)m_pVideoCapture->get(CV_CAP_PROP_FRAME_COUNT);
-		m_nCurVideoFrame = -1;
+		m_nCurFrameIdx = -1;
 
 		// slider
 		m_ctrVideoSlider.SetRangeMax(m_nNumVideoFrames);
@@ -428,24 +446,24 @@ bool CGroundTruthMakerDlg::CloseVideo()
 }
 
 
-bool CGroundTruthMakerDlg::ReadFrame(int position)
+bool CGroundTruthMakerDlg::ReadFrame(int position, bool bShowFrame)
 {	
 	if (!m_bVideoOnRead) { return false; }
 	if (position < -1)
 	{
 		// move to the next frame (do nothing) | last frame check
-		m_nCurVideoFrame++;
+		m_nCurFrameIdx++;
 	}
 	else
 	{
 		// move to a specific frame
-		m_nCurVideoFrame = MAX(0, MIN(position, m_nNumVideoFrames - 1));
-		m_pVideoCapture->set(CV_CAP_PROP_POS_FRAMES, (double)m_nCurVideoFrame);		
+		m_nCurFrameIdx = MAX(0, MIN(position, m_nNumVideoFrames - 1));
+		m_pVideoCapture->set(CV_CAP_PROP_POS_FRAMES, (double)m_nCurFrameIdx);		
 	}
 	(*m_pVideoCapture) >> m_matVideoFrame;
-	//m_nCurVideoFrame = (int)m_pVideoCapture->get(CV_CAP_PROP_FRAME_COUNT);
-	m_ctrVideoSlider.SetPos(m_nCurVideoFrame);
-	CString buff; buff.Format(_T("%d"), m_nCurVideoFrame);
+	//m_nCurFrameIdx = (int)m_pVideoCapture->get(CV_CAP_PROP_FRAME_COUNT);
+	m_ctrVideoSlider.SetPos(m_nCurFrameIdx);
+	CString buff; buff.Format(_T("%d"), m_nCurFrameIdx);
 	SetDlgItemText(IDC_STATIC_FI_FRAME_INDEX, buff);
 
 	// TODO: display time
@@ -453,7 +471,8 @@ bool CGroundTruthMakerDlg::ReadFrame(int position)
 
 	m_ptCurObject = m_cCurMetadata.GetObjectInfo(m_nCurID);
 
-	this->ShowFrame();
+	if (bShowFrame)
+		this->ShowFrame();
 
 	return true;
 }
@@ -596,12 +615,12 @@ void CGroundTruthMakerDlg::ShowFrame()
 void CGroundTruthMakerDlg::OnBnClickedButtonNext()
 {
 	this->SaveMetadata();
-	this->ReadFrame(m_nCurVideoFrame + 1);
+	this->ReadFrame(m_nCurFrameIdx + 1);
 }
 
 void CGroundTruthMakerDlg::OnBnClickedButtonPrev()
 {
-	this->ReadFrame(m_nCurVideoFrame - 1);
+	this->ReadFrame(m_nCurFrameIdx - 1);
 }
 
 
@@ -742,39 +761,9 @@ void CGroundTruthMakerDlg::SaveMetadata()
 	if (m_bDataChanged)
 	{			
 		CString strMetadataFilePath;
-		strMetadataFilePath.Format(_T("%s\\%s_%06d"), m_strMetadataFileDir, m_strVideoName, m_nCurVideoFrame);
+		strMetadataFilePath.Format(_T("%s\\%s_%06d"), m_strMetadataFileDir, m_strVideoName, m_nCurFrameIdx);
 		m_cCurMetadata.writefile(strMetadataFilePath);
 	}
-}
-
-
-void CGroundTruthMakerDlg::Showbox(int x, int y, int width, int height)
-{
-	//**************************************************************
-	// jeongmin's box draw using depth code
-	CDC *dc = GetDC();
-
-	CBrush brush;
-	brush.CreateStockObject(NULL_BRUSH);
-	CBrush *oldBrush = dc->SelectObject(&brush);
-	
-	
-	COLORREF penColor = RGB(255, 0, 0);
-
-	CPen pen;
-	pen.CreatePen(PS_DOT, 3, penColor);
-	CPen* oldPen = dc->SelectObject(&pen);
-
-	if(width ==1 && height ==1)
-		dc->Rectangle(x-width, y- height, x + width, y + height);
-	else 
-		dc->Rectangle(x, y, x + width - 1, y + height - 1);
-	
-	
-	dc->SelectObject(oldPen);
-	dc->SelectObject(oldBrush);
-	
-	//****************************************************************
 }
 
 
@@ -782,6 +771,47 @@ void CGroundTruthMakerDlg::OnBnClickedButtonClear()
 {
 	m_ptCurObject->Init();
 }
+
+
+//=========================================================================
+// OPERATIONS
+//=========================================================================
+void CGroundTruthMakerDlg::Track()
+{
+	// initialize trackers
+	std::vector<KCFTracker> vecTrackers(0);
+	for (int objIdx = 0; objIdx < m_cCurMetadata.vecObjects.size(); objIdx++)
+	{
+		bool HOG = true;
+		bool FIXEDWINDOW = false;
+		bool MULTISCALE = true;
+		bool SILENT = true;
+		bool LAB = false;
+
+		KCFTracker tracker(HOG, FIXEDWINDOW, MULTISCALE, LAB);
+		tracker.init(
+			CRect2CVRect(m_cCurMetadata.vecObjects[objIdx].boundingBox),
+			m_matVideoFrame);
+		vecTrackers.push_back(tracker);
+	}
+
+	// proceed to the next frame
+	int nPrevFrameIndex = m_nCurFrameIdx;
+	this->ReadFrame(nPrevFrameIndex + 1, false);
+
+	if (nPrevFrameIndex != m_nCurFrameIdx)  // if there is another frame 
+	{		
+		m_cCurMetadata.frameIndex = m_nCurFrameIdx;		
+		for (int objIdx = 0; objIdx < vecTrackers.size(); objIdx++)
+		{
+			m_cCurMetadata.vecObjects[objIdx].boundingBox =
+				CVRect2CRect(vecTrackers[objIdx].update(m_matVideoFrame));
+		}
+	}
+
+	this->ShowFrame();
+}
+
 
 //()()
 //('')HAANJU.YOO

@@ -95,11 +95,11 @@ public:
 protected:
 	bool OpenVideo(const std::string strVideoPath);
 	bool CloseVideo();
-	bool ReadFrame(int position = -2);
+	bool ReadFrame(int position = -2, bool bShowFrame = true);
 	void ShowFrame();
 	void AdjustVideSlider(int position);
 	void SaveMetadata();
-	void CGroundTruthMakerDlg::Showbox(int x, int y, int width, int height);
+	void Track();
 
 	//---------------------------------------------------------------------
 	// VARIABLES
@@ -121,7 +121,7 @@ protected:
 	bool m_bVideoOnRead;
 	cv::VideoCapture *m_pVideoCapture;	
 	int m_nNumVideoFrames;
-	int m_nCurVideoFrame;
+	int m_nCurFrameIdx;
 	int m_nCurID;
 	cv::Mat m_matVideoFrame;
 
