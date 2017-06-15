@@ -20,6 +20,8 @@
 #define new DEBUG_NEW
 #endif
 
+enum ADJUST_POINT { AP_LT = 0, AP_T, AP_RT, AP_R, AP_RB, AP_B, AP_LB, AP_L, NUM_AP};
+
 bool objectIDAscend(const CGTObjectInfo obj1, const CGTObjectInfo obj2) { return obj1.id < obj2.id; }
 
 cv::Rect CRect2CVRect(CRect rect)
@@ -38,6 +40,58 @@ CRect CVRect2CRect(cv::Rect rect)
 	int right = (int)(rect.x + rect.width - 1);
 	int bottom = (int)(rect.y + rect.height - 1);
 	return CRect(left, top, right, bottom);
+}
+
+CRect GetAdjustPointRegion(CRect rect, ADJUST_POINT ap, int size=5)
+{
+	CRect APRegion;
+	int centerX, centerY;
+	int halfSize = size / 2;
+	switch (ap)
+	{
+	case AP_LT:
+		centerX = rect.left;
+		centerY = rect.top;
+		break;
+	case AP_T:
+		centerX = (rect.left + rect.right) / 2;
+		centerY = rect.top;
+		break;
+	case AP_RT:
+		centerX = (rect.left + rect.right) / 2;
+		centerY = rect.top;
+		break;
+	case AP_R:
+		centerX = rect.right;
+		centerY = (rect.top + rect.bottom) / 2;
+		break;
+	case AP_RB:
+		centerX = rect.right;
+		centerY = rect.bottom;
+		break;
+	case AP_B:
+		centerX = (rect.left + rect.right) / 2;
+		centerY = rect.bottom;
+		break;
+	case AP_LB:
+		centerX = rect.left;
+		centerY = rect.bottom;
+		break;
+	case AP_L:
+		centerX = rect.left;
+		centerY = (rect.top + rect.bottom) / 2;
+		break;
+	default:
+		centerX = 0;
+		centerY = 0;
+		break;
+	}
+	APRegion.left = centerX - halfSize;
+	APRegion.right = centerX + halfSize;
+	APRegion.top = centerY - halfSize;
+	APRegion.bottom = centerY + halfSize;
+
+	return APRegion;
 }
 
 //=========================================================================
@@ -313,8 +367,8 @@ BOOL CGroundTruthMakerDlg::OnInitDialog()
 	m_ptCurObject = m_cCurMetadata.GetObjectInfo(m_nCurID);
 
 	// for FSM (Finite State Machine)
-	m_nCurrState = GUI_STATE_IDLE;
-	m_nNextState = GUI_STATE_SET_BOX_LT;
+	m_nCurrState = GUI_STATE_SET_BOX_LT;
+	m_nNextState = GUI_STATE_IDLE;
 
 	UpdateData(false);
 
@@ -571,14 +625,7 @@ void CGroundTruthMakerDlg::ShowFrame()
 		}
 		CPen pen;
 		pen.CreatePen(PS_DOT, 3, penColor);
-		CPen* oldPen = dc->SelectObject(&pen);
-
-		// bounding box
-		dc->Rectangle(
-			m_cCurMetadata.vecObjects[i].boundingBox.left,
-			m_cCurMetadata.vecObjects[i].boundingBox.top,
-			m_cCurMetadata.vecObjects[i].boundingBox.right,
-			m_cCurMetadata.vecObjects[i].boundingBox.bottom);
+		CPen* oldPen = dc->SelectObject(&pen);		
 
 		// body parts
 		for (int j = 0; j < NUM_PARTS; j++)
@@ -594,6 +641,24 @@ void CGroundTruthMakerDlg::ShowFrame()
 				m_cCurMetadata.vecObjects[i].partPoints[j].x + 1,
 				m_cCurMetadata.vecObjects[i].partPoints[j].y + 1);
 		}	
+
+		// bounding box
+		dc->Rectangle(
+			m_cCurMetadata.vecObjects[i].boundingBox.left,
+			m_cCurMetadata.vecObjects[i].boundingBox.top,
+			m_cCurMetadata.vecObjects[i].boundingBox.right,
+			m_cCurMetadata.vecObjects[i].boundingBox.bottom);
+
+		// adjustable points
+		if (m_cCurMetadata.vecObjects[i].id == m_nCurID 
+			&& m_nCurrState != GUI_STATE_SET_BOX_RB)
+		{
+			for (int k = 0; k < NUM_AP; k++)
+			{
+				dc->Rectangle(GetAdjustPointRegion(
+					m_cCurMetadata.vecObjects[i].boundingBox, (ADJUST_POINT)k));
+			}
+		}
 
 		// draw labels
 		CString strID;
@@ -620,12 +685,14 @@ void CGroundTruthMakerDlg::OnBnClickedButtonNext()
 
 void CGroundTruthMakerDlg::OnBnClickedButtonPrev()
 {
+	this->SaveMetadata();
 	this->ReadFrame(m_nCurFrameIdx - 1);
 }
 
 
 void CGroundTruthMakerDlg::OnNMReleasedcaptureSliderVideo(NMHDR *pNMHDR, LRESULT *pResult)
 {
+	this->SaveMetadata();
 	int nPos = m_ctrVideoSlider.GetPos();
 	this->ReadFrame(nPos);
 	*pResult = 0;
@@ -636,8 +703,7 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 {	
 	bool bViewUpdate = false;
 	CString strStatic;
-
-	m_nCurrState = m_nNextState;
+	
 	switch (m_nCurrState)
 	{
 	case GUI_STATE_SET_BOX_RB:
@@ -657,6 +723,7 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 		m_nNextState = m_nCurrState;
 		break;
 	}
+	m_nCurrState = m_nNextState;
 
 	if (bViewUpdate)
 	{
@@ -673,8 +740,7 @@ void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 	CString strStatic;
 
 	if (m_rectViewer.PtInRect(point))
-	{
-		m_nCurrState = m_nNextState;
+	{		
 		switch (m_nCurrState)
 		{
 		case GUI_STATE_SET_BOX_LT:
@@ -705,10 +771,12 @@ void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 			m_nNextState = GUI_STATE_SET_BOX_RB;
 			break;
 		}
+		m_nCurrState = m_nNextState;
 	}
 
 	if (bViewUpdate)
 	{
+		m_bDataChanged = true;
 		this->ShowFrame();
 	}
 
@@ -720,8 +788,7 @@ void CGroundTruthMakerDlg::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	bool bViewUpdate = false;
 	CString strStatic;
-	
-	m_nCurrState = m_nNextState;
+		
 	switch (m_nCurrState)
 	{
 	case GUI_STATE_SET_BOX_RB:		
@@ -731,6 +798,7 @@ void CGroundTruthMakerDlg::OnLButtonUp(UINT nFlags, CPoint point)
 		m_nNextState = m_nCurrState;
 		break;
 	}
+	m_nCurrState = m_nNextState;
 
 	if (bViewUpdate)
 	{
@@ -747,11 +815,11 @@ void CGroundTruthMakerDlg::OnClickedRadioBox(UINT msg)
 	UpdateData(TRUE);
 	if (m_nRadioButton == 0) 
 	{ 
-		m_nNextState = GUI_STATE_SET_BOX_LT;
+		m_nCurrState = GUI_STATE_SET_BOX_LT;
 	}
 	else
 	{
-		m_nNextState = GUI_STATE_SET_BODY_PART;
+		m_nCurrState = GUI_STATE_SET_BODY_PART;
 	}
 }
 
@@ -808,6 +876,8 @@ BOOL CGroundTruthMakerDlg::PreTranslateMessage(MSG *pMsg)
 //=========================================================================
 void CGroundTruthMakerDlg::Track()
 {
+	this->SaveMetadata();
+
 	// initialize trackers
 	std::vector<KCFTracker> vecTrackers(0);
 	for (int objIdx = 0; objIdx < m_cCurMetadata.vecObjects.size(); objIdx++)
@@ -837,6 +907,7 @@ void CGroundTruthMakerDlg::Track()
 			m_cCurMetadata.vecObjects[objIdx].boundingBox =
 				CVRect2CRect(vecTrackers[objIdx].update(m_matVideoFrame));
 		}
+		m_bDataChanged = true;
 	}
 
 	this->ShowFrame();
