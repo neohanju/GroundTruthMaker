@@ -17,7 +17,7 @@ enum PARTS {
 	PART_HEAD = 0, 
 	PART_LEFT_HAND, 
 	PART_RIGHT_HAND, 
-	PART_LEFT_FOOT, 
+	PART_LEFT_FOOT,
 	PART_RIGHT_FOOT, 
 	NUM_PARTS 
 };
@@ -91,6 +91,7 @@ public:
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnClickedRadioBox(UINT msg);
 	afx_msg void OnBnClickedButtonClear();
+	BOOL PreTranslateMessage(MSG *pMsg);
 
 protected:
 	bool OpenVideo(const std::string strVideoPath);

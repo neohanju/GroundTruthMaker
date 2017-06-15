@@ -773,6 +773,36 @@ void CGroundTruthMakerDlg::OnBnClickedButtonClear()
 }
 
 
+BOOL CGroundTruthMakerDlg::PreTranslateMessage(MSG *pMsg)
+{
+	if (m_bVideoOnRead && WM_KEYDOWN == pMsg->message)
+	{
+		switch (pMsg->wParam)
+		{
+		case VK_LEFT:
+			// OnBnClickedButtonFramePrev();
+			break;
+		case VK_RIGHT:
+			// OnBnClickedButtonFrameNext();
+			break;
+		case VK_UP:
+			// OnBnClickedButtonIdUp();
+			break;
+		case VK_DOWN:
+			// OnBnClickedButtonIdDown();
+			break;
+		case VK_SPACE:
+			Track();
+			break;
+		default:
+			// do nothing
+			break;
+		}
+	}
+	return CDialog::PreTranslateMessage(pMsg);
+}
+
+
 //=========================================================================
 // OPERATIONS
 //=========================================================================
