@@ -20,8 +20,6 @@
 #define new DEBUG_NEW
 #endif
 
-enum ADJUST_POINT { AP_LT = 0, AP_T, AP_RT, AP_R, AP_RB, AP_B, AP_LB, AP_L, NUM_AP};
-
 bool objectIDAscend(const CGTObjectInfo obj1, const CGTObjectInfo obj2) { return obj1.id < obj2.id; }
 
 cv::Rect CRect2CVRect(CRect rect)
@@ -42,7 +40,7 @@ CRect CVRect2CRect(cv::Rect rect)
 	return CRect(left, top, right, bottom);
 }
 
-CRect GetAdjustPointRegion(CRect rect, ADJUST_POINT ap, int size=5)
+CRect GetAdjustPointRegion(CRect rect, ADJUST_POINT ap, int size=7)
 {
 	CRect APRegion;
 	int centerX, centerY;
@@ -58,7 +56,7 @@ CRect GetAdjustPointRegion(CRect rect, ADJUST_POINT ap, int size=5)
 		centerY = rect.top;
 		break;
 	case AP_RT:
-		centerX = (rect.left + rect.right) / 2;
+		centerX = rect.right;
 		centerY = rect.top;
 		break;
 	case AP_R:
@@ -92,6 +90,36 @@ CRect GetAdjustPointRegion(CRect rect, ADJUST_POINT ap, int size=5)
 	APRegion.bottom = centerY + halfSize;
 
 	return APRegion;
+}
+
+CRect GetAdjustedRect(const CRect rect, const ADJUST_POINT pointType, const CPoint point, const CRect viewRect)
+{
+	CRect resultRect = rect;
+	if (AP_LT == pointType ||
+		AP_L  == pointType ||
+		AP_LB == pointType)
+	{
+		resultRect.left = MAX(0, MIN(point.x, viewRect.right - 1));
+	}
+	if (AP_RT == pointType ||
+		AP_R  == pointType ||
+		AP_RB == pointType)
+	{
+		resultRect.right = MAX(0, MIN(point.x, viewRect.right - 1));
+	}
+	if (AP_LT == pointType ||
+		AP_T  == pointType ||
+		AP_RT == pointType)
+	{
+		resultRect.top = MAX(0, MIN(point.y, viewRect.bottom - 1));
+	}
+	if (AP_LB == pointType ||
+		AP_B  == pointType ||
+		AP_RB == pointType)
+	{
+		resultRect.bottom = MAX(0, MIN(point.y, viewRect.bottom - 1));
+	}
+	return resultRect;
 }
 
 //=========================================================================
@@ -309,6 +337,7 @@ BEGIN_MESSAGE_MAP(CGroundTruthMakerDlg, CDialogEx)
 	ON_WM_LBUTTONUP()
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO_BOX, IDC_RADIO_R_FOOT, &CGroundTruthMakerDlg::OnClickedRadioBox)
 	ON_BN_CLICKED(IDC_BUTTON_CLEAR, &CGroundTruthMakerDlg::OnBnClickedButtonClear)
+	ON_WM_SETCURSOR()
 END_MESSAGE_MAP()
 
 
@@ -368,7 +397,24 @@ BOOL CGroundTruthMakerDlg::OnInitDialog()
 
 	// for FSM (Finite State Machine)
 	m_nCurrState = GUI_STATE_SET_BOX_LT;
-	m_nNextState = GUI_STATE_IDLE;
+	m_nNextState = GUI_STATE_SET_BOX_LT;
+
+	// mouse cursor
+	m_arrCursors[MCT_NORMAL] = LoadCursor(NULL, IDC_ARROW);
+	m_arrCursors[MCT_CROSS] = LoadCursor(NULL, IDC_CROSS);
+	m_arrCursors[MCT_SIZE_NESW] = LoadCursor(NULL, IDC_SIZENESW);
+	m_arrCursors[MCT_SIZE_NS] = LoadCursor(NULL, IDC_SIZENS);
+	m_arrCursors[MCT_SIZE_NWSE] = LoadCursor(NULL, IDC_SIZENWSE);
+	m_arrCursors[MCT_SIZE_WE] = LoadCursor(NULL, IDC_SIZEWE);
+
+	m_arrApCursorTypes[AP_T] = MCT_SIZE_NS;
+	m_arrApCursorTypes[AP_B] = MCT_SIZE_NS;
+	m_arrApCursorTypes[AP_L] = MCT_SIZE_WE;
+	m_arrApCursorTypes[AP_R] = MCT_SIZE_WE;
+	m_arrApCursorTypes[AP_LT] = MCT_SIZE_NWSE;
+	m_arrApCursorTypes[AP_RB] = MCT_SIZE_NWSE;
+	m_arrApCursorTypes[AP_LB] = MCT_SIZE_NESW;
+	m_arrApCursorTypes[AP_RT] = MCT_SIZE_NESW;
 
 	UpdateData(false);
 
@@ -447,6 +493,12 @@ void CGroundTruthMakerDlg::OnBnClickedButtonLoad()
 		m_strMetadataFileDir.Truncate(m_strMetadataFileDir.ReverseFind('\\'));
 		CT2CA pszConvertedAnsiString(strPathName);
 		this->OpenVideo(std::string(pszConvertedAnsiString));
+
+		// remove extension from file name
+		std::wstring filename(m_strVideoName);
+		std::wstring::reverse_iterator pivot = std::find(filename.rbegin(), filename.rend(), '.');
+		filename = std::wstring(filename.begin(), pivot.base() - 1);
+		m_strVideoName = CString(filename.c_str());
 	}
 	this->ReadFrame();	
 }
@@ -651,7 +703,8 @@ void CGroundTruthMakerDlg::ShowFrame()
 
 		// adjustable points
 		if (m_cCurMetadata.vecObjects[i].id == m_nCurID 
-			&& m_nCurrState != GUI_STATE_SET_BOX_RB)
+			&& m_cCurMetadata.vecObjects[i].valid
+			&& m_nCurrState == GUI_STATE_SET_BOX_LT)
 		{
 			for (int k = 0; k < NUM_AP; k++)
 			{
@@ -666,8 +719,8 @@ void CGroundTruthMakerDlg::ShowFrame()
 		dc->SetTextColor(penColor);
 		dc->SetBkColor(RGB(0, 0, 0));
 		dc->TextOut(
-			m_cCurMetadata.vecObjects[i].boundingBox.left,
-			m_cCurMetadata.vecObjects[i].boundingBox.top - 15,	// 13) 저 좌표값을 움직이면 된다. (하드 코딩한것 고치기)
+			m_cCurMetadata.vecObjects[i].boundingBox.left + 1,
+			m_cCurMetadata.vecObjects[i].boundingBox.top + 1,
 			strID);
 		dc->SelectObject(oldPen);
 	}
@@ -702,10 +755,60 @@ void CGroundTruthMakerDlg::OnNMReleasedcaptureSliderVideo(NMHDR *pNMHDR, LRESULT
 void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 {	
 	bool bViewUpdate = false;
+	bool bOnAdjustablePoints = false;
 	CString strStatic;
 	
 	switch (m_nCurrState)
 	{
+	case GUI_STATE_SET_BOX_LT:
+		// set mouse points
+		if (m_nCursorType == MCT_NORMAL)
+		{
+			for (int i = 0; i < NUM_AP && m_ptCurObject->valid; i++)
+			{
+				if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i).PtInRect(point))
+				{
+					m_nCursorType = m_arrApCursorTypes[i];
+					::SetCursor(m_arrCursors[m_nCursorType]);
+					break;
+				}
+			}
+		}
+		else
+		{
+			bOnAdjustablePoints = false;
+			for (int i = 0; i < NUM_AP && m_ptCurObject->valid; i++)
+			{
+				CRect debugRect = GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i);
+				if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i).PtInRect(point))
+				{					
+					bOnAdjustablePoints = true;
+					break;
+				}
+			}
+			if (!bOnAdjustablePoints)
+			{
+				m_nCursorType = MCT_NORMAL;		
+				::SetCursor(m_arrCursors[m_nCursorType]);
+			}
+		}		
+		break;
+	case GUI_STATE_ADJUST_BODY_BOX:
+		// renew bounding box with adjusting points
+		m_ptCurObject->boundingBox = GetAdjustedRect(
+			m_ptCurObject->boundingBox, 
+			m_nCurAdjustingPoint, 
+			point, 
+			m_rectViewer);
+		strStatic.Format(_T("(%d, %d, %d, %d)"),
+			m_ptCurObject->boundingBox.left,
+			m_ptCurObject->boundingBox.top,
+			m_ptCurObject->boundingBox.right,
+			m_ptCurObject->boundingBox.bottom);
+		SetDlgItemText(IDC_STATIC_BOX_INFO, strStatic);
+		m_nNextState = m_nCurrState;
+		bViewUpdate = true;
+		break;
 	case GUI_STATE_SET_BOX_RB:
 		m_ptCurObject->boundingBox.right = MAX(0, MIN(point.x, m_rectViewer.right - 1));
 		m_ptCurObject->boundingBox.bottom = MAX(0, MIN(point.y, m_rectViewer.bottom - 1));
@@ -716,9 +819,8 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 			m_ptCurObject->boundingBox.bottom);
 		SetDlgItemText(IDC_STATIC_BOX_INFO, strStatic);
 		m_nNextState = m_nCurrState;
-
 		bViewUpdate = true;		
-		break;
+		break;	
 	default:
 		m_nNextState = m_nCurrState;
 		break;
@@ -736,22 +838,37 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 
 void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 {
-	bool bViewUpdate = false;
 	CString strStatic;
+	bool bAdjusting = false;
 
 	if (m_rectViewer.PtInRect(point))
 	{		
 		switch (m_nCurrState)
 		{
-		case GUI_STATE_SET_BOX_LT:
-			m_ptCurObject->boundingBox.left = point.x;
-			m_ptCurObject->boundingBox.top = point.y;
-			m_ptCurObject->boundingBox.right = point.x;
-			m_ptCurObject->boundingBox.bottom = point.y;
-			m_ptCurObject->valid = true;
-
-			m_nNextState = GUI_STATE_SET_BOX_RB;
-			bViewUpdate = true;
+		case GUI_STATE_SET_BOX_LT:			
+			for (int i = 0; i < NUM_AP && m_ptCurObject->valid; i++)
+			{
+				if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i).PtInRect(point))
+				{
+					m_nCurAdjustingPoint = (ADJUST_POINT)i;
+					bAdjusting = true;
+					break;
+				}
+			}
+			if (!bAdjusting)
+			{
+				m_ptCurObject->boundingBox.left = point.x;
+				m_ptCurObject->boundingBox.top = point.y;
+				m_ptCurObject->boundingBox.right = point.x;
+				m_ptCurObject->boundingBox.bottom = point.y;
+				m_ptCurObject->valid = true;
+				m_nNextState = GUI_STATE_SET_BOX_RB;
+			}
+			else
+			{
+				m_nNextState = GUI_STATE_ADJUST_BODY_BOX;
+			}
+			m_bDataChanged = true;
 			break;
 		case GUI_STATE_SET_BODY_PART:			
 			m_ptCurObject->partPoints[m_nRadioButton-1] = point;
@@ -762,11 +879,8 @@ void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 			m_ptCurObject->valid = true;
 
 			m_nNextState = GUI_STATE_SET_BODY_PART;
-			bViewUpdate = true;
-			break;
-		case GUI_STATE_ADJUST_BODY_BOX:
-			// TODO: recognize which adjust point is selected
-			break;
+			m_bDataChanged = true;
+			break;		
 		default:
 			m_nNextState = GUI_STATE_SET_BOX_RB;
 			break;
@@ -774,11 +888,8 @@ void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 		m_nCurrState = m_nNextState;
 	}
 
-	if (bViewUpdate)
-	{
-		m_bDataChanged = true;
-		this->ShowFrame();
-	}
+	m_bDataChanged = true;
+	this->ShowFrame();
 
 	CDialogEx::OnLButtonDown(nFlags, point);
 }
@@ -786,13 +897,15 @@ void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 
 void CGroundTruthMakerDlg::OnLButtonUp(UINT nFlags, CPoint point)
 {
-	bool bViewUpdate = false;
 	CString strStatic;
 		
 	switch (m_nCurrState)
 	{
+	case GUI_STATE_ADJUST_BODY_BOX:
+		::SetCursor(m_arrCursors[MCT_NORMAL]);
 	case GUI_STATE_SET_BOX_RB:		
-		m_nNextState = GUI_STATE_SET_BOX_LT;		
+		m_nNextState = GUI_STATE_SET_BOX_LT;
+		m_bDataChanged = true;
 		break;
 	default:
 		m_nNextState = m_nCurrState;
@@ -800,10 +913,7 @@ void CGroundTruthMakerDlg::OnLButtonUp(UINT nFlags, CPoint point)
 	}
 	m_nCurrState = m_nNextState;
 
-	if (bViewUpdate)
-	{
-		this->ShowFrame();
-	}
+	this->ShowFrame();
 
 	CDialogEx::OnLButtonUp(nFlags, point);
 }
@@ -811,7 +921,6 @@ void CGroundTruthMakerDlg::OnLButtonUp(UINT nFlags, CPoint point)
 
 void CGroundTruthMakerDlg::OnClickedRadioBox(UINT msg)
 {
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
 	UpdateData(TRUE);
 	if (m_nRadioButton == 0) 
 	{ 
@@ -821,6 +930,7 @@ void CGroundTruthMakerDlg::OnClickedRadioBox(UINT msg)
 	{
 		m_nCurrState = GUI_STATE_SET_BODY_PART;
 	}
+	this->ShowFrame();
 }
 
 
@@ -829,7 +939,7 @@ void CGroundTruthMakerDlg::SaveMetadata()
 	if (m_bDataChanged)
 	{			
 		CString strMetadataFilePath;
-		strMetadataFilePath.Format(_T("%s\\%s_%06d"), m_strMetadataFileDir, m_strVideoName, m_nCurFrameIdx);
+		strMetadataFilePath.Format(_T("%s\\%s_%06d.txt"), m_strMetadataFileDir, m_strVideoName, m_nCurFrameIdx);
 		m_cCurMetadata.writefile(strMetadataFilePath);
 	}
 }
@@ -838,6 +948,17 @@ void CGroundTruthMakerDlg::SaveMetadata()
 void CGroundTruthMakerDlg::OnBnClickedButtonClear()
 {
 	m_ptCurObject->Init();
+}
+
+
+BOOL CGroundTruthMakerDlg::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
+{
+	if (m_arrCursors[m_nCursorType])
+	{
+		::SetCursor(m_arrCursors[m_nCursorType]);
+		return TRUE;
+	}
+	return CDialogEx::OnSetCursor(pWnd, nHitTest, message);
 }
 
 
@@ -866,6 +987,7 @@ BOOL CGroundTruthMakerDlg::PreTranslateMessage(MSG *pMsg)
 			// do nothing
 			break;
 		}
+		return TRUE;
 	}
 	return CDialog::PreTranslateMessage(pMsg);
 }
@@ -916,3 +1038,4 @@ void CGroundTruthMakerDlg::Track()
 
 //()()
 //('')HAANJU.YOO
+

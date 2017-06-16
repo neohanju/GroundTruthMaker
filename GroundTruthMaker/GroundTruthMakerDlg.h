@@ -31,6 +31,28 @@ enum GUI_STATE {
 	NUM_GUI_STATE
 };
 
+enum ADJUST_POINT { 
+	AP_LT = 0, 
+	AP_T, 
+	AP_RT, 
+	AP_R, 
+	AP_RB, 
+	AP_B, 
+	AP_LB, 
+	AP_L, 
+	NUM_AP 
+};
+
+enum MOUSE_CURSOR_TYPE {
+	MCT_NORMAL = 0,
+	MCT_CROSS,
+	MCT_SIZE_NESW,
+	MCT_SIZE_NS,
+	MCT_SIZE_NWSE,
+	MCT_SIZE_WE,
+	NUM_MCT
+};
+
 class CGTObjectInfo
 {
 public:
@@ -91,6 +113,7 @@ public:
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnClickedRadioBox(UINT msg);
 	afx_msg void OnBnClickedButtonClear();
+	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
 	BOOL PreTranslateMessage(MSG *pMsg);
 
 protected:
@@ -132,6 +155,11 @@ protected:
 	UINT m_nRadioButton;
 	CComboBox m_comboCategory;	
 
+	// GUI FSM related
+	ADJUST_POINT m_nCurAdjustingPoint;
+	MOUSE_CURSOR_TYPE m_nCursorType;
+	HCURSOR m_arrCursors[NUM_MCT];
+	MOUSE_CURSOR_TYPE m_arrApCursorTypes[NUM_AP];
 	GUI_STATE m_nCurrState;
-	GUI_STATE m_nNextState;
+	GUI_STATE m_nNextState;	
 };
