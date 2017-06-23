@@ -250,9 +250,11 @@ bool CGTMetadata::readfile(const CString strPath)
 				restoken = strCurLine.Tokenize(_T(" "), curPos);
 				newObject.partPoints[i].y = _ttoi(restoken);
 			}
+
 			this->vecObjects.push_back(newObject);
 		}
 		file.Close();
+
 		assert(numObject == (int)this->vecObjects.size());
 	}
 	catch (int e)
@@ -338,6 +340,7 @@ BEGIN_MESSAGE_MAP(CGroundTruthMakerDlg, CDialogEx)
 	ON_CONTROL_RANGE(BN_CLICKED, IDC_RADIO_BOX, IDC_RADIO_R_FOOT, &CGroundTruthMakerDlg::OnClickedRadioBox)
 	ON_BN_CLICKED(IDC_BUTTON_CLEAR, &CGroundTruthMakerDlg::OnBnClickedButtonClear)
 	ON_WM_SETCURSOR()
+	ON_CBN_SELCHANGE(IDC_COMBO_CATEGORY, &CGroundTruthMakerDlg::OnSelchangeComboCategory)
 END_MESSAGE_MAP()
 
 
@@ -574,7 +577,7 @@ bool CGroundTruthMakerDlg::ReadFrame(int position, bool bShowFrame)
 
 	// TODO: display time
 	//SetDlgItemText(IDC_STATIC_FI_TIME, buff);
-
+	//this->ReadMetadata();
 	m_ptCurObject = m_cCurMetadata.GetObjectInfo(m_nCurID);
 
 	if (bShowFrame)
@@ -761,6 +764,8 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 	switch (m_nCurrState)
 	{
 	case GUI_STATE_SET_BOX_LT:
+		m_ptCurObject->category = m_nCurComboID;
+
 		// set mouse points
 		if (m_nCursorType == MCT_NORMAL)
 		{
@@ -944,6 +949,17 @@ void CGroundTruthMakerDlg::SaveMetadata()
 	}
 }
 
+void CGroundTruthMakerDlg::ReadMetadata()
+{
+	CFileFind Find;
+	CString strMetadataFilePath;
+	strMetadataFilePath.Format(_T("%s\\%s_%06d.txt"), m_strMetadataFileDir, m_strVideoName, m_nCurFrameIdx);
+	
+	if( Find.FindFile(strMetadataFilePath))             //경로에 해당 txt file이 있는지 check
+		m_cCurMetadata.readfile(strMetadataFilePath);   //txt file 읽어오기
+
+}
+
 
 void CGroundTruthMakerDlg::OnBnClickedButtonClear()
 {
@@ -1035,7 +1051,10 @@ void CGroundTruthMakerDlg::Track()
 	this->ShowFrame();
 }
 
+void CGroundTruthMakerDlg::OnSelchangeComboCategory()
+{
+	m_nCurComboID = m_comboCategory.GetCurSel();
+}
 
 //()()
 //('')HAANJU.YOO
-

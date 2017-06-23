@@ -114,6 +114,7 @@ public:
 	afx_msg void OnClickedRadioBox(UINT msg);
 	afx_msg void OnBnClickedButtonClear();
 	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
+	afx_msg void OnSelchangeComboCategory();
 	BOOL PreTranslateMessage(MSG *pMsg);
 
 protected:
@@ -123,6 +124,7 @@ protected:
 	void ShowFrame();
 	void AdjustVideSlider(int position);
 	void SaveMetadata();
+	void ReadMetadata();
 	void Track();
 
 	//---------------------------------------------------------------------
@@ -132,6 +134,7 @@ protected:
 	bool m_bDataChanged;
 	CGTMetadata m_cCurMetadata;	
 	CGTObjectInfo* m_ptCurObject;
+	CGTObjectInfo* m_ptFindObject;
 	CString m_strVideoName;
 	CString m_strMetadataFileDir;
 	
@@ -147,6 +150,7 @@ protected:
 	int m_nNumVideoFrames;
 	int m_nCurFrameIdx;
 	int m_nCurID;
+	int m_nCurComboID;
 	cv::Mat m_matVideoFrame;
 
 	// slider
@@ -162,4 +166,5 @@ protected:
 	MOUSE_CURSOR_TYPE m_arrApCursorTypes[NUM_AP];
 	GUI_STATE m_nCurrState;
 	GUI_STATE m_nNextState;	
+
 };
