@@ -68,13 +68,14 @@ public:
 class CGTMetadata
 {
 public:
-	CGTMetadata() : frameIndex(0) {}
+	CGTMetadata() : frameIndex(0), m_bGarbageDump(false){}
 	void clear() { this->vecObjects.clear(); }
 	void insert(CGTObjectInfo newObject);
 	CGTObjectInfo *GetObjectInfo(int id);
 	bool writefile(const CString strPath);
 	bool readfile(const CString strPath);	
 	int frameIndex;
+	bool m_bGarbageDump;
 	std::vector<CGTObjectInfo> vecObjects;
 };
 
@@ -107,6 +108,7 @@ public:
 	afx_msg void OnDestroy();
 	afx_msg void OnBnClickedButtonNext();
 	afx_msg void OnBnClickedButtonPrev();
+	afx_msg void OnClickedIdSet();
 	afx_msg void OnNMReleasedcaptureSliderVideo(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
@@ -115,6 +117,9 @@ public:
 	afx_msg void OnBnClickedButtonClear();
 	afx_msg BOOL OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message);
 	afx_msg void OnSelchangeComboCategory();
+	afx_msg void OnClickedGo();
+	afx_msg void OnClickedButtonDelete();
+	afx_msg void OnClickedCheckEventGargage();
 	BOOL PreTranslateMessage(MSG *pMsg);
 
 protected:
@@ -134,6 +139,7 @@ protected:
 	bool m_bDataChanged;
 	CGTMetadata m_cCurMetadata;	
 	CGTObjectInfo* m_ptCurObject;
+	CGTMetadata m_cFindMetadata;;
 	CGTObjectInfo* m_ptFindObject;
 	CString m_strVideoName;
 	CString m_strMetadataFileDir;

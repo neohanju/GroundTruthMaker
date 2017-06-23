@@ -206,6 +206,7 @@ bool CGTMetadata::writefile(const CString strPath)
 			}		
 			outputFile << std::endl;
 		}
+		outputFile << this->m_bGarbageDump;
 		outputFile.close();
 	}
 	catch (int e)
@@ -224,9 +225,13 @@ bool CGTMetadata::readfile(const CString strPath)
 		CStdioFile file(strPath, CFile::modeRead | CFile::typeText);
 		file.ReadString(strCurLine);
 		int numObject = _ttoi(strCurLine);
-		while (true)
+		int iter = 0;                          // 대안이 없는지 고민하기
+		this->vecObjects.clear();              //아무 의미 없어 0으로 초기화 되어있는 vecObjects가 자동생성 되어 있어서 지워주는 작업
+		while (true)						   // m_cCurMetadata를 같이 공유해서 쓰고 있으므로 문제가 생기면 따로 변수를 선언해서 사용하거나 해결방안 찾아보기
 		{
-			if (!file.ReadString(strCurLine)) { break; }
+			//if (!file.ReadString(strCurLine)) { break; }
+			file.ReadString(strCurLine);
+			if (numObject == iter) { break; }
 
 			CGTObjectInfo newObject;
 			newObject.valid = true;
@@ -234,6 +239,8 @@ bool CGTMetadata::readfile(const CString strPath)
 			int curPos = 0;
 			CString restoken = strCurLine.Tokenize(_T(" "), curPos);			
 			newObject.id = _ttoi(restoken);
+			restoken = strCurLine.Tokenize(_T(" "), curPos);
+			newObject.category = _ttoi(restoken);
 			restoken = strCurLine.Tokenize(_T(" "), curPos);
 			newObject.boundingBox.left = _ttoi(restoken);
 			restoken = strCurLine.Tokenize(_T(" "), curPos);
@@ -252,7 +259,9 @@ bool CGTMetadata::readfile(const CString strPath)
 			}
 
 			this->vecObjects.push_back(newObject);
+			iter++;
 		}
+		this->m_bGarbageDump = _ttoi(strCurLine);
 		file.Close();
 
 		assert(numObject == (int)this->vecObjects.size());
@@ -341,6 +350,10 @@ BEGIN_MESSAGE_MAP(CGroundTruthMakerDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_CLEAR, &CGroundTruthMakerDlg::OnBnClickedButtonClear)
 	ON_WM_SETCURSOR()
 	ON_CBN_SELCHANGE(IDC_COMBO_CATEGORY, &CGroundTruthMakerDlg::OnSelchangeComboCategory)
+	ON_BN_CLICKED(IDC_ID_SET, &CGroundTruthMakerDlg::OnClickedIdSet)
+	ON_BN_CLICKED(IDC_GO, &CGroundTruthMakerDlg::OnClickedGo)
+	ON_BN_CLICKED(IDC_BUTTON_DELETE_FRAME_INFO, &CGroundTruthMakerDlg::OnClickedButtonDelete)
+	ON_BN_CLICKED(IDC_CHECK_EVENT_GARGAGE, &CGroundTruthMakerDlg::OnClickedCheckEventGargage)
 END_MESSAGE_MAP()
 
 
@@ -577,7 +590,7 @@ bool CGroundTruthMakerDlg::ReadFrame(int position, bool bShowFrame)
 
 	// TODO: display time
 	//SetDlgItemText(IDC_STATIC_FI_TIME, buff);
-	//this->ReadMetadata();
+	this->ReadMetadata();
 	m_ptCurObject = m_cCurMetadata.GetObjectInfo(m_nCurID);
 
 	if (bShowFrame)
@@ -659,11 +672,80 @@ void CGroundTruthMakerDlg::ShowFrame()
 	m_pVideoFrameImage = nullptr;
 	
 
+	////----------------------------------------------------------
+	//// DRAW FIND BOXES           (현재 아래 박스와 두번 그려지는 문제)
+	////----------------------------------------------------------
+	//CDC *dc = GetDC();
+	//CBrush brush;
+	//brush.CreateStockObject(NULL_BRUSH);
+	//CBrush *oldBrush = dc->SelectObject(&brush);
+
+	//for (int i = 0; i < (int)m_cFindMetadata.vecObjects.size(); i++)
+	//{
+	//	if (!m_cFindMetadata.vecObjects[i].valid) { continue; }
+
+	//	COLORREF penColor = RGB(170, 170, 170);
+	//	if (m_cFindMetadata.vecObjects[i].id == m_nCurID)
+	//	{
+	//		penColor = RGB(255, 0, 0);
+	//	}
+	//	CPen pen;
+	//	pen.CreatePen(PS_DOT, 3, penColor);
+	//	CPen* oldPen = dc->SelectObject(&pen);
+
+	//	// body parts
+	//	for (int j = 0; j < NUM_PARTS; j++)
+	//	{
+	//		if (0 == m_cFindMetadata.vecObjects[i].partPoints[j].x
+	//			&& 0 == m_cFindMetadata.vecObjects[i].partPoints[j].y)
+	//		{
+	//			continue;
+	//		}
+	//		dc->Rectangle(
+	//			m_cFindMetadata.vecObjects[i].partPoints[j].x - 1,
+	//			m_cFindMetadata.vecObjects[i].partPoints[j].y - 1,
+	//			m_cFindMetadata.vecObjects[i].partPoints[j].x + 1,
+	//			m_cFindMetadata.vecObjects[i].partPoints[j].y + 1);
+	//	}
+
+	//	// bounding box
+	//	dc->Rectangle(
+	//		m_cFindMetadata.vecObjects[i].boundingBox.left,
+	//		m_cFindMetadata.vecObjects[i].boundingBox.top,
+	//		m_cFindMetadata.vecObjects[i].boundingBox.right,
+	//		m_cFindMetadata.vecObjects[i].boundingBox.bottom);
+
+	//	// adjustable points
+	//	if (m_cFindMetadata.vecObjects[i].id == m_nCurID
+	//		&& m_cFindMetadata.vecObjects[i].valid
+	//		&& m_nCurrState == GUI_STATE_SET_BOX_LT)
+	//	{
+	//		for (int k = 0; k < NUM_AP; k++)
+	//		{
+	//			dc->Rectangle(GetAdjustPointRegion(
+	//				m_cFindMetadata.vecObjects[i].boundingBox, (ADJUST_POINT)k));
+	//		}
+	//	}
+
+	//	// draw labels
+	//	CString strID;
+	//	strID.Format(_T("%d"), m_cFindMetadata.vecObjects[i].id);
+	//	dc->SetTextColor(penColor);
+	//	dc->SetBkColor(RGB(0, 0, 0));
+	//	dc->TextOut(
+	//		m_cFindMetadata.vecObjects[i].boundingBox.left + 1,
+	//		m_cFindMetadata.vecObjects[i].boundingBox.top + 1,
+	//		strID);
+	//	dc->SelectObject(oldPen);
+	//}
+	//dc->SelectObject(oldBrush);
+
+
 	//----------------------------------------------------------
 	// DRAW BOXES
 	//----------------------------------------------------------
 
-
+    
 	CDC *dc = GetDC();
 	CBrush brush;
 	brush.CreateStockObject(NULL_BRUSH);
@@ -964,6 +1046,7 @@ void CGroundTruthMakerDlg::ReadMetadata()
 void CGroundTruthMakerDlg::OnBnClickedButtonClear()
 {
 	m_ptCurObject->Init();
+	this->ShowFrame();     
 }
 
 
@@ -1008,6 +1091,36 @@ BOOL CGroundTruthMakerDlg::PreTranslateMessage(MSG *pMsg)
 	return CDialog::PreTranslateMessage(pMsg);
 }
 
+void CGroundTruthMakerDlg::OnSelchangeComboCategory()
+{
+	m_nCurComboID = m_comboCategory.GetCurSel();
+}
+
+void CGroundTruthMakerDlg::OnClickedIdSet()
+{
+	CString strID;
+	GetDlgItemText(IDC_EDIT_ID, strID);
+	m_nCurID = _ttoi(strID);
+}
+
+void CGroundTruthMakerDlg::OnClickedGo()
+{
+	CString moveTo;
+	GetDlgItemText(IDC_EDIT_MOVE_TO, moveTo);
+	m_nCurFrameIdx = _ttoi(moveTo);
+	this->ReadFrame(m_nCurFrameIdx);
+}
+
+void CGroundTruthMakerDlg::OnClickedButtonDelete()
+{
+	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
+}
+
+void CGroundTruthMakerDlg::OnClickedCheckEventGargage()
+{
+	m_cCurMetadata.m_bGarbageDump = true;
+}
+
 
 //=========================================================================
 // OPERATIONS
@@ -1049,11 +1162,6 @@ void CGroundTruthMakerDlg::Track()
 	}
 
 	this->ShowFrame();
-}
-
-void CGroundTruthMakerDlg::OnSelchangeComboCategory()
-{
-	m_nCurComboID = m_comboCategory.GetCurSel();
 }
 
 //()()
