@@ -11,6 +11,7 @@
 #include "opencv2/opencv.hpp"
 #include <vector>
 #include "afxwin.h"
+#include "afxcmn.h"
 
 enum PARTS {
 	BOUNDING_BOX = -1,
@@ -57,7 +58,7 @@ class CGTObjectInfo
 {
 public:
 	CGTObjectInfo() { Init(); }
-	void Init();
+	void Init(int _id = 0);
 	bool valid;
 	int id;
 	int category;
@@ -68,14 +69,18 @@ public:
 class CGTMetadata
 {
 public:
-	CGTMetadata() : frameIndex(0), garbageDump(false) {}
-	void clear() { this->vecObjects.clear(); }
+	CGTMetadata() : nFrameIndex(0), bGarbageDump(false) {}
+	void clear() 
+	{ 
+		this->vecObjects.clear(); 
+		this->bGarbageDump = false;
+	}
 	void insert(CGTObjectInfo newObject);
 	CGTObjectInfo *GetObjectInfo(int id);
 	bool writefile(const CString strPath);
 	bool readfile(const CString strPath);
-	int frameIndex;
-	bool garbageDump;
+	int nFrameIndex;
+	bool bGarbageDump;
 	std::vector<CGTObjectInfo> vecObjects;
 };
 
@@ -108,7 +113,7 @@ public:
 	afx_msg void OnDestroy();
 	afx_msg void OnBnClickedButtonNext();
 	afx_msg void OnBnClickedButtonPrev();
-	afx_msg void OnClickedIdSet();
+//	afx_msg void OnClickedIdSet();
 	afx_msg void OnNMReleasedcaptureSliderVideo(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
@@ -120,6 +125,7 @@ public:
 	afx_msg void OnClickedGo();
 	afx_msg void OnClickedButtonDelete();
 	afx_msg void OnClickedCheckEventGargage();
+	afx_msg void OnEnChangeEditId();
 	BOOL PreTranslateMessage(MSG *pMsg);
 
 protected:
@@ -127,6 +133,8 @@ protected:
 	bool CloseVideo();
 	bool ReadFrame(int position = -2, bool bShowFrame = true);
 	void ShowFrame();
+	void UpdateObjectInfoField();
+	void UpdateEventField();
 	void AdjustVideSlider(int position);
 	void SaveMetadata();
 	void ReadMetadata();
@@ -149,6 +157,9 @@ protected:
 	CImage* m_pVideoFrameImage;
 	CRect m_rectViewer;
 
+	// ID
+	CSpinButtonCtrl m_cSpinBtnCtrl;
+
 	bool m_bVideoOnRead;
 	cv::VideoCapture *m_pVideoCapture;
 	int m_nNumVideoFrames;
@@ -160,8 +171,12 @@ protected:
 	// slider
 	CSliderCtrl m_ctrVideoSlider;
 
-	UINT m_nRadioButton;
+	// object information	
 	CComboBox m_comboCategory;
+	UINT m_nRadioButton;
+
+	// event information
+	CButton m_ctrlCheckGarbageDumping;
 
 	// GUI FSM related
 	ADJUST_POINT m_nCurAdjustingPoint;
@@ -169,6 +184,5 @@ protected:
 	HCURSOR m_arrCursors[NUM_MCT];
 	MOUSE_CURSOR_TYPE m_arrApCursorTypes[NUM_AP];
 	GUI_STATE m_nCurrState;
-	GUI_STATE m_nNextState;
-
+	GUI_STATE m_nNextState;	
 };

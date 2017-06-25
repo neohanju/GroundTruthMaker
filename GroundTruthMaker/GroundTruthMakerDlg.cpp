@@ -22,13 +22,13 @@
 
 bool objectIDAscend(const CGTObjectInfo obj1, const CGTObjectInfo obj2) { return obj1.id < obj2.id; }
 
-cv::Rect CRect2CVRect(CRect rect)
+cv::Rect2f CRect2CVRect(CRect rect)
 {
 	float x = (float)rect.left;
 	float y = (float)rect.top;
 	float w = (float)(rect.right - rect.left + 1);
 	float h = (float)(rect.bottom - rect.top + 1);
-	return cv::Rect(x, y, w, h);
+	return cv::Rect2f(x, y, w, h);
 }
 
 CRect CVRect2CRect(cv::Rect rect)
@@ -40,7 +40,7 @@ CRect CVRect2CRect(cv::Rect rect)
 	return CRect(left, top, right, bottom);
 }
 
-CRect GetAdjustPointRegion(CRect rect, ADJUST_POINT ap, int size = 7)
+CRect GetAdjustPointRegion(CRect rect, ADJUST_POINT ap, const CRect viewRect, int size = 7)
 {
 	CRect APRegion;
 	int centerX, centerY;
@@ -84,10 +84,10 @@ CRect GetAdjustPointRegion(CRect rect, ADJUST_POINT ap, int size = 7)
 		centerY = 0;
 		break;
 	}
-	APRegion.left = centerX - halfSize;
-	APRegion.right = centerX + halfSize;
-	APRegion.top = centerY - halfSize;
-	APRegion.bottom = centerY + halfSize;
+	APRegion.left = MAX(viewRect.left, MIN(centerX - halfSize, viewRect.right - 1));
+	APRegion.right = MAX(viewRect.left, MIN(centerX + halfSize, viewRect.right - 1));
+	APRegion.top = MAX(viewRect.top, MIN(centerY - halfSize, viewRect.bottom - 1));
+	APRegion.bottom = MAX(viewRect.top, MIN(centerY + halfSize, viewRect.bottom - 1));
 
 	return APRegion;
 }
@@ -99,25 +99,25 @@ CRect GetAdjustedRect(const CRect rect, const ADJUST_POINT pointType, const CPoi
 		AP_L == pointType ||
 		AP_LB == pointType)
 	{
-		resultRect.left = MAX(0, MIN(point.x, viewRect.right - 1));
+		resultRect.left = MAX(viewRect.left, MIN(point.x, viewRect.right - 1));
 	}
 	if (AP_RT == pointType ||
 		AP_R == pointType ||
 		AP_RB == pointType)
 	{
-		resultRect.right = MAX(0, MIN(point.x, viewRect.right - 1));
+		resultRect.right = MAX(viewRect.left, MIN(point.x, viewRect.right - 1));
 	}
 	if (AP_LT == pointType ||
 		AP_T == pointType ||
 		AP_RT == pointType)
 	{
-		resultRect.top = MAX(0, MIN(point.y, viewRect.bottom - 1));
+		resultRect.top = MAX(viewRect.top, MIN(point.y, viewRect.bottom - 1));
 	}
 	if (AP_LB == pointType ||
 		AP_B == pointType ||
 		AP_RB == pointType)
 	{
-		resultRect.bottom = MAX(0, MIN(point.y, viewRect.bottom - 1));
+		resultRect.bottom = MAX(viewRect.top, MIN(point.y, viewRect.bottom - 1));
 	}
 	return resultRect;
 }
@@ -125,11 +125,12 @@ CRect GetAdjustedRect(const CRect rect, const ADJUST_POINT pointType, const CPoi
 //=========================================================================
 // CGTObjectInfo
 //=========================================================================
-void CGTObjectInfo::Init()
+void CGTObjectInfo::Init(int _id)
 {
-	id = 0;
+	id = _id;
 	category = 0;
 	valid = false;
+	boundingBox = CRect(0, 0, 0, 0);
 	for (int i = 0; i < NUM_PARTS; i++)
 	{
 		partPoints[i] = CPoint(0, 0);
@@ -166,6 +167,8 @@ CGTObjectInfo* CGTMetadata::GetObjectInfo(int id)
 	if (!bFound)
 	{
 		CGTObjectInfo newObject;
+		newObject.Init();
+		newObject.id = id;
 		vecObjects.push_back(newObject);
 	}
 	return &vecObjects.back();
@@ -206,7 +209,7 @@ bool CGTMetadata::writefile(const CString strPath)
 			}
 			outputFile << std::endl;
 		}
-		outputFile << this->garbageDump;
+		outputFile << this->bGarbageDump;
 		outputFile.close();
 	}
 	catch (int e)
@@ -261,7 +264,7 @@ bool CGTMetadata::readfile(const CString strPath)
 			this->vecObjects.push_back(newObject);
 			iter++;
 		}
-		this->garbageDump = _ttoi(strCurLine);
+		this->bGarbageDump = 1 == _ttoi(strCurLine)? true : false;
 		file.Close();
 
 		assert(numObject == (int)this->vecObjects.size());
@@ -331,6 +334,8 @@ void CGroundTruthMakerDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_SLIDER_VIDEO, m_ctrVideoSlider);
 	DDX_Control(pDX, IDC_COMBO_CATEGORY, m_comboCategory);
 	DDX_Radio(pDX, IDC_RADIO_BOX, (int&)m_nRadioButton);
+	DDX_Control(pDX, IDC_SPIN_ID, m_cSpinBtnCtrl);
+	DDX_Control(pDX, IDC_CHECK_EVENT_GARGAGE, m_ctrlCheckGarbageDumping);
 }
 
 
@@ -350,10 +355,11 @@ BEGIN_MESSAGE_MAP(CGroundTruthMakerDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_CLEAR, &CGroundTruthMakerDlg::OnBnClickedButtonClear)
 	ON_WM_SETCURSOR()
 	ON_CBN_SELCHANGE(IDC_COMBO_CATEGORY, &CGroundTruthMakerDlg::OnSelchangeComboCategory)
-	ON_BN_CLICKED(IDC_ID_SET, &CGroundTruthMakerDlg::OnClickedIdSet)
+//	ON_BN_CLICKED(IDC_ID_SET, &CGroundTruthMakerDlg::OnClickedIdSet)
 	ON_BN_CLICKED(IDC_GO, &CGroundTruthMakerDlg::OnClickedGo)
 	ON_BN_CLICKED(IDC_BUTTON_DELETE_FRAME_INFO, &CGroundTruthMakerDlg::OnClickedButtonDelete)
 	ON_BN_CLICKED(IDC_CHECK_EVENT_GARGAGE, &CGroundTruthMakerDlg::OnClickedCheckEventGargage)
+	ON_EN_CHANGE(IDC_EDIT_ID, &CGroundTruthMakerDlg::OnEnChangeEditId)
 END_MESSAGE_MAP()
 
 
@@ -398,7 +404,10 @@ BOOL CGroundTruthMakerDlg::OnInitDialog()
 	m_ctrVideoSlider.SetLineSize(1);    // moving interval of keyboard direction keys
 	m_ctrVideoSlider.SetPageSize(100);  // moving interval of page up/down keys 
 
-										// category
+	// ID
+	m_cSpinBtnCtrl.SetRange32(0, INT_MAX);
+
+	// category
 	m_comboCategory.AddString(_T("0: Pedestrian"));
 	m_comboCategory.AddString(_T("1: Garbage"));
 	m_comboCategory.SetCurSel(0);
@@ -682,16 +691,12 @@ void CGroundTruthMakerDlg::ShowFrame()
 		bitInfo.bmiHeader.biXPelsPerMeter = 0;
 		bitInfo.bmiHeader.biYPelsPerMeter = 0;
 
-
-
 		// Add header and OPENCV image's data to the HDC
 		StretchDIBits(m_pVideoFrameImage->GetDC(), 0, 0,
 			rectSize.width, rectSize.height, 0, 0,
 			rectSize.width, rectSize.height,
 			pcDibBits, &bitInfo, DIB_RGB_COLORS, SRCCOPY);
 		free(pcDibBits);
-
-
 	}
 	m_pVideoFrameImage->BitBlt(::GetDC(m_csVideoFrame.m_hWnd), 0, 0);
 	m_pVideoFrameImage->ReleaseDC();
@@ -699,85 +704,13 @@ void CGroundTruthMakerDlg::ShowFrame()
 	m_pVideoFrameImage = nullptr;
 
 
-	////----------------------------------------------------------
-	//// DRAW FIND BOXES           (현재 아래 박스와 두번 그려지는 문제)
-	////----------------------------------------------------------
-	//CDC *dc = GetDC();
-	//CBrush brush;
-	//brush.CreateStockObject(NULL_BRUSH);
-	//CBrush *oldBrush = dc->SelectObject(&brush);
-
-	//for (int i = 0; i < (int)m_cFindMetadata.vecObjects.size(); i++)
-	//{
-	//	if (!m_cFindMetadata.vecObjects[i].valid) { continue; }
-
-	//	COLORREF penColor = RGB(170, 170, 170);
-	//	if (m_cFindMetadata.vecObjects[i].id == m_nCurID)
-	//	{
-	//		penColor = RGB(255, 0, 0);
-	//	}
-	//	CPen pen;
-	//	pen.CreatePen(PS_DOT, 3, penColor);
-	//	CPen* oldPen = dc->SelectObject(&pen);
-
-	//	// body parts
-	//	for (int j = 0; j < NUM_PARTS; j++)
-	//	{
-	//		if (0 == m_cFindMetadata.vecObjects[i].partPoints[j].x
-	//			&& 0 == m_cFindMetadata.vecObjects[i].partPoints[j].y)
-	//		{
-	//			continue;
-	//		}
-	//		dc->Rectangle(
-	//			m_cFindMetadata.vecObjects[i].partPoints[j].x - 1,
-	//			m_cFindMetadata.vecObjects[i].partPoints[j].y - 1,
-	//			m_cFindMetadata.vecObjects[i].partPoints[j].x + 1,
-	//			m_cFindMetadata.vecObjects[i].partPoints[j].y + 1);
-	//	}
-
-	//	// bounding box
-	//	dc->Rectangle(
-	//		m_cFindMetadata.vecObjects[i].boundingBox.left,
-	//		m_cFindMetadata.vecObjects[i].boundingBox.top,
-	//		m_cFindMetadata.vecObjects[i].boundingBox.right,
-	//		m_cFindMetadata.vecObjects[i].boundingBox.bottom);
-
-	//	// adjustable points
-	//	if (m_cFindMetadata.vecObjects[i].id == m_nCurID
-	//		&& m_cFindMetadata.vecObjects[i].valid
-	//		&& m_nCurrState == GUI_STATE_SET_BOX_LT)
-	//	{
-	//		for (int k = 0; k < NUM_AP; k++)
-	//		{
-	//			dc->Rectangle(GetAdjustPointRegion(
-	//				m_cFindMetadata.vecObjects[i].boundingBox, (ADJUST_POINT)k));
-	//		}
-	//	}
-
-	//	// draw labels
-	//	CString strID;
-	//	strID.Format(_T("%d"), m_cFindMetadata.vecObjects[i].id);
-	//	dc->SetTextColor(penColor);
-	//	dc->SetBkColor(RGB(0, 0, 0));
-	//	dc->TextOut(
-	//		m_cFindMetadata.vecObjects[i].boundingBox.left + 1,
-	//		m_cFindMetadata.vecObjects[i].boundingBox.top + 1,
-	//		strID);
-	//	dc->SelectObject(oldPen);
-	//}
-	//dc->SelectObject(oldBrush);
-
-
 	//----------------------------------------------------------
 	// DRAW BOXES
 	//----------------------------------------------------------
-
-
 	CDC *dc = GetDC();
 	CBrush brush;
 	brush.CreateStockObject(NULL_BRUSH);
 	CBrush *oldBrush = dc->SelectObject(&brush);
-
 	for (int i = 0; i < (int)m_cCurMetadata.vecObjects.size(); i++)
 	{
 		if (!m_cCurMetadata.vecObjects[i].valid) { continue; }
@@ -806,34 +739,41 @@ void CGroundTruthMakerDlg::ShowFrame()
 				m_cCurMetadata.vecObjects[i].partPoints[j].y + 1);
 		}
 
-		// bounding box
-		dc->Rectangle(
-			m_cCurMetadata.vecObjects[i].boundingBox.left,
-			m_cCurMetadata.vecObjects[i].boundingBox.top,
-			m_cCurMetadata.vecObjects[i].boundingBox.right,
-			m_cCurMetadata.vecObjects[i].boundingBox.bottom);
 
-		// adjustable points
-		if (m_cCurMetadata.vecObjects[i].id == m_nCurID
-			&& m_cCurMetadata.vecObjects[i].valid
-			&& m_nCurrState == GUI_STATE_SET_BOX_LT)
+		if (m_cCurMetadata.vecObjects[i].boundingBox.left != m_cCurMetadata.vecObjects[i].boundingBox.right
+			&& m_cCurMetadata.vecObjects[i].boundingBox.top != m_cCurMetadata.vecObjects[i].boundingBox.bottom)
 		{
-			for (int k = 0; k < NUM_AP; k++)
+			// bounding box
+			dc->Rectangle(
+				m_cCurMetadata.vecObjects[i].boundingBox.left,
+				m_cCurMetadata.vecObjects[i].boundingBox.top,
+				m_cCurMetadata.vecObjects[i].boundingBox.right,
+				m_cCurMetadata.vecObjects[i].boundingBox.bottom);
+
+
+			// adjustable points
+			if (m_cCurMetadata.vecObjects[i].id == m_nCurID
+				&& m_cCurMetadata.vecObjects[i].valid
+				&& m_nCurrState == GUI_STATE_SET_BOX_LT)
 			{
-				dc->Rectangle(GetAdjustPointRegion(
-					m_cCurMetadata.vecObjects[i].boundingBox, (ADJUST_POINT)k));
+				for (int k = 0; k < NUM_AP; k++)
+				{
+					dc->Rectangle(GetAdjustPointRegion(
+						m_cCurMetadata.vecObjects[i].boundingBox, (ADJUST_POINT)k, m_rectViewer));
+				}
 			}
+
+			// draw labels
+			CString strID;
+			strID.Format(_T("%d"), m_cCurMetadata.vecObjects[i].id);
+			dc->SetTextColor(penColor);
+			dc->SetBkColor(RGB(0, 0, 0));
+			dc->TextOut(
+				m_cCurMetadata.vecObjects[i].boundingBox.left + 1,
+				m_cCurMetadata.vecObjects[i].boundingBox.top + 1,
+				strID);
 		}
 
-		// draw labels
-		CString strID;
-		strID.Format(_T("%d"), m_cCurMetadata.vecObjects[i].id);
-		dc->SetTextColor(penColor);
-		dc->SetBkColor(RGB(0, 0, 0));
-		dc->TextOut(
-			m_cCurMetadata.vecObjects[i].boundingBox.left + 1,
-			m_cCurMetadata.vecObjects[i].boundingBox.top + 1,
-			strID);
 		dc->SelectObject(oldPen);
 	}
 	dc->SelectObject(oldBrush);
@@ -842,16 +782,58 @@ void CGroundTruthMakerDlg::ShowFrame()
 }
 
 
+void CGroundTruthMakerDlg::UpdateObjectInfoField()
+{
+	CString strStatic;
+	CString strID;
+	GetDlgItemText(IDC_EDIT_ID, strID);
+	if (m_nCurID != _ttoi(strID))
+	{
+		strID.Format(_T("%d"), m_nCurID);
+		SetDlgItemText(IDC_EDIT_ID, strID);
+	}
+		
+	m_comboCategory.SetCurSel(m_ptCurObject->category);
+	strStatic.Format(_T("(%d, %d, %d, %d)"),
+		m_ptCurObject->boundingBox.left,
+		m_ptCurObject->boundingBox.top,
+		m_ptCurObject->boundingBox.right,
+		m_ptCurObject->boundingBox.bottom);
+	SetDlgItemText(IDC_STATIC_BOX_INFO, strStatic);
+
+	for (int pIdx = 0; pIdx < NUM_PARTS; pIdx++)
+	{
+		strStatic.Format(_T("(%d, %d)"),
+			m_ptCurObject->partPoints[pIdx].x,
+			m_ptCurObject->partPoints[pIdx].y);
+		SetDlgItemText(IDC_STATIC_BOX_INFO + pIdx + 1, strStatic);
+	}
+}
+
+
+void CGroundTruthMakerDlg::UpdateEventField()
+{
+	if (m_cCurMetadata.bGarbageDump)
+		m_ctrlCheckGarbageDumping.SetCheck(BST_CHECKED);
+	else
+		m_ctrlCheckGarbageDumping.SetCheck(BST_UNCHECKED);
+}
+
+
 void CGroundTruthMakerDlg::OnBnClickedButtonNext()
 {
 	this->SaveMetadata();
 	this->ReadFrame(m_nCurFrameIdx + 1);
+	this->UpdateObjectInfoField();
+	this->UpdateEventField();
 }
 
 void CGroundTruthMakerDlg::OnBnClickedButtonPrev()
 {
 	this->SaveMetadata();
 	this->ReadFrame(m_nCurFrameIdx - 1);
+	this->UpdateObjectInfoField();
+	this->UpdateEventField();
 }
 
 
@@ -861,6 +843,8 @@ void CGroundTruthMakerDlg::OnNMReleasedcaptureSliderVideo(NMHDR *pNMHDR, LRESULT
 	int nPos = m_ctrVideoSlider.GetPos();
 	this->ReadFrame(nPos);
 	*pResult = 0;
+	this->UpdateObjectInfoField();
+	this->UpdateEventField();
 }
 
 
@@ -873,14 +857,12 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 	switch (m_nCurrState)
 	{
 	case GUI_STATE_SET_BOX_LT:
-		m_ptCurObject->category = m_nCurComboID;
-
 		// set mouse points
 		if (m_nCursorType == MCT_NORMAL)
 		{
 			for (int i = 0; i < NUM_AP && m_ptCurObject->valid; i++)
 			{
-				if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i).PtInRect(point))
+				if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, m_rectViewer).PtInRect(point))
 				{
 					m_nCursorType = m_arrApCursorTypes[i];
 					::SetCursor(m_arrCursors[m_nCursorType]);
@@ -893,8 +875,8 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 			bOnAdjustablePoints = false;
 			for (int i = 0; i < NUM_AP && m_ptCurObject->valid; i++)
 			{
-				CRect debugRect = GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i);
-				if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i).PtInRect(point))
+				CRect debugRect = GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, m_rectViewer);
+				if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, m_rectViewer).PtInRect(point))
 				{
 					bOnAdjustablePoints = true;
 					break;
@@ -919,32 +901,25 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 			m_ptCurObject->boundingBox.top,
 			m_ptCurObject->boundingBox.right,
 			m_ptCurObject->boundingBox.bottom);
-		SetDlgItemText(IDC_STATIC_BOX_INFO, strStatic);
-		m_nNextState = m_nCurrState;
+		SetDlgItemText(IDC_STATIC_BOX_INFO, strStatic);		
 		bViewUpdate = true;
 		break;
 	case GUI_STATE_SET_BOX_RB:
-		m_ptCurObject->boundingBox.right = MAX(0, MIN(point.x, m_rectViewer.right - 1));
-		m_ptCurObject->boundingBox.bottom = MAX(0, MIN(point.y, m_rectViewer.bottom - 1));
+		m_ptCurObject->boundingBox.right = MAX(m_rectViewer.left, MIN(point.x, m_rectViewer.right - 1));
+		m_ptCurObject->boundingBox.bottom = MAX(m_rectViewer.top, MIN(point.y, m_rectViewer.bottom - 1));
 		strStatic.Format(_T("(%d, %d, %d, %d)"),
 			m_ptCurObject->boundingBox.left,
 			m_ptCurObject->boundingBox.top,
 			m_ptCurObject->boundingBox.right,
 			m_ptCurObject->boundingBox.bottom);
-		SetDlgItemText(IDC_STATIC_BOX_INFO, strStatic);
-		m_nNextState = m_nCurrState;
+		SetDlgItemText(IDC_STATIC_BOX_INFO, strStatic);		
 		bViewUpdate = true;
 		break;
-	default:
-		m_nNextState = m_nCurrState;
+	default:		
 		break;
-	}
-	m_nCurrState = m_nNextState;
+	}	
 
-	if (bViewUpdate)
-	{
-		this->ShowFrame();
-	}
+	if (bViewUpdate) { this->ShowFrame(); }
 
 	CDialogEx::OnMouseMove(nFlags, point);
 }
@@ -962,7 +937,7 @@ void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 		case GUI_STATE_SET_BOX_LT:
 			for (int i = 0; i < NUM_AP && m_ptCurObject->valid; i++)
 			{
-				if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i).PtInRect(point))
+				if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, m_rectViewer).PtInRect(point))
 				{
 					m_nCurAdjustingPoint = (ADJUST_POINT)i;
 					bAdjusting = true;
@@ -1021,8 +996,7 @@ void CGroundTruthMakerDlg::OnLButtonUp(UINT nFlags, CPoint point)
 		m_nNextState = GUI_STATE_SET_BOX_LT;
 		m_bDataChanged = true;
 		break;
-	default:
-		m_nNextState = m_nCurrState;
+	default:		
 		break;
 	}
 	m_nCurrState = m_nNextState;
@@ -1036,14 +1010,7 @@ void CGroundTruthMakerDlg::OnLButtonUp(UINT nFlags, CPoint point)
 void CGroundTruthMakerDlg::OnClickedRadioBox(UINT msg)
 {
 	UpdateData(TRUE);
-	if (m_nRadioButton == 0)
-	{
-		m_nCurrState = GUI_STATE_SET_BOX_LT;
-	}
-	else
-	{
-		m_nCurrState = GUI_STATE_SET_BODY_PART;
-	}
+	m_nCurrState = m_nRadioButton == 0 ? GUI_STATE_SET_BOX_LT : GUI_STATE_SET_BODY_PART;	
 	this->ShowFrame();
 }
 
@@ -1063,19 +1030,16 @@ void CGroundTruthMakerDlg::ReadMetadata()
 	CFileFind Find;
 	CString strMetadataFilePath;
 	strMetadataFilePath.Format(_T("%s\\%s_%06d.txt"), m_strMetadataFileDir, m_strVideoName, m_nCurFrameIdx);
-
-	if (Find.FindFile(strMetadataFilePath))             //경로에 해당 txt file이 있는지 check
-		m_cCurMetadata.readfile(strMetadataFilePath);   //txt file 읽어오기
-
+	if (Find.FindFile(strMetadataFilePath))
+		m_cCurMetadata.readfile(strMetadataFilePath);
 }
 
 
 void CGroundTruthMakerDlg::OnBnClickedButtonClear()
 {
-	m_cCurMetadata.vecObjects.erase(m_cCurMetadata.vecObjects.begin() + m_nCurID); //현재 선택된 ID만 지워야 한다
-																				   //m_ptCurObject->Init();
+	m_ptCurObject->Init(m_nCurID);
 	m_bDataChanged = true;
-	m_cCurMetadata.garbageDump = false;
+	this->UpdateObjectInfoField();
 	this->ShowFrame();
 }
 
@@ -1088,6 +1052,20 @@ BOOL CGroundTruthMakerDlg::OnSetCursor(CWnd* pWnd, UINT nHitTest, UINT message)
 		return TRUE;
 	}
 	return CDialogEx::OnSetCursor(pWnd, nHitTest, message);
+}
+
+
+void CGroundTruthMakerDlg::OnEnChangeEditId()
+{
+	if (!m_bVideoOnRead)
+		return;
+
+	CString strID;
+	GetDlgItemText(IDC_EDIT_ID, strID);
+	m_nCurID = _ttoi(strID);
+	m_ptCurObject = m_cCurMetadata.GetObjectInfo(m_nCurID);
+	this->UpdateObjectInfoField();
+	this->ShowFrame();
 }
 
 
@@ -1121,17 +1099,13 @@ BOOL CGroundTruthMakerDlg::PreTranslateMessage(MSG *pMsg)
 	return CDialog::PreTranslateMessage(pMsg);
 }
 
+
 void CGroundTruthMakerDlg::OnSelchangeComboCategory()
 {
-	m_nCurComboID = m_comboCategory.GetCurSel();
+	m_ptCurObject->category = m_comboCategory.GetCurSel();
+	m_bDataChanged = true;
 }
 
-void CGroundTruthMakerDlg::OnClickedIdSet()
-{
-	CString strID;
-	GetDlgItemText(IDC_EDIT_ID, strID);
-	m_nCurID = _ttoi(strID);
-}
 
 void CGroundTruthMakerDlg::OnClickedGo()
 {
@@ -1141,21 +1115,22 @@ void CGroundTruthMakerDlg::OnClickedGo()
 	this->ReadFrame(m_nCurFrameIdx);
 }
 
+
 void CGroundTruthMakerDlg::OnClickedButtonDelete()
 {
-	// TODO: 여기에 컨트롤 알림 처리기 코드를 추가합니다.
 	m_cCurMetadata.clear();
+	m_ptCurObject = m_cCurMetadata.GetObjectInfo(m_nCurID);
 	m_bDataChanged = true;
-	m_cCurMetadata.garbageDump = false;                    // check box반영이 제대로 안되어서 임의로 들어감
+	this->UpdateEventField();
+	this->UpdateObjectInfoField();
 	this->ShowFrame();
 }
 
 void CGroundTruthMakerDlg::OnClickedCheckEventGargage()
 {
-	if (m_cCurMetadata.garbageDump == true)
-		m_cCurMetadata.garbageDump = false;                // 체크박스에 체크 되어있으면 1    
-	else                                                   // 안되어있으면 0
-		m_cCurMetadata.garbageDump = true;                 // 이부분 변경이 Delete나 Clear할때 제대로 반영이 안된다!
+	int ChkBox = m_ctrlCheckGarbageDumping.GetCheck();
+	m_cCurMetadata.bGarbageDump = ChkBox == BST_CHECKED ? true : false;
+	m_bDataChanged = true;
 }
 
 
@@ -1189,7 +1164,7 @@ void CGroundTruthMakerDlg::Track()
 
 	if (nPrevFrameIndex != m_nCurFrameIdx)  // if there is another frame 
 	{
-		m_cCurMetadata.frameIndex = m_nCurFrameIdx;
+		m_cCurMetadata.nFrameIndex = m_nCurFrameIdx;
 		for (int objIdx = 0; objIdx < vecTrackers.size(); objIdx++)
 		{
 			m_cCurMetadata.vecObjects[objIdx].boundingBox =
@@ -1203,3 +1178,4 @@ void CGroundTruthMakerDlg::Track()
 
 //()()
 //('')HAANJU.YOO
+
