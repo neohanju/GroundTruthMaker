@@ -12,14 +12,14 @@
 #include <vector>
 #include "afxwin.h"
 
-enum PARTS { 
-	BOUNDING_BOX = -1, 
-	PART_HEAD = 0, 
-	PART_LEFT_HAND, 
-	PART_RIGHT_HAND, 
+enum PARTS {
+	BOUNDING_BOX = -1,
+	PART_HEAD = 0,
+	PART_LEFT_HAND,
+	PART_RIGHT_HAND,
 	PART_LEFT_FOOT,
-	PART_RIGHT_FOOT, 
-	NUM_PARTS 
+	PART_RIGHT_FOOT,
+	NUM_PARTS
 };
 
 enum GUI_STATE {
@@ -31,16 +31,16 @@ enum GUI_STATE {
 	NUM_GUI_STATE
 };
 
-enum ADJUST_POINT { 
-	AP_LT = 0, 
-	AP_T, 
-	AP_RT, 
-	AP_R, 
-	AP_RB, 
-	AP_B, 
-	AP_LB, 
-	AP_L, 
-	NUM_AP 
+enum ADJUST_POINT {
+	AP_LT = 0,
+	AP_T,
+	AP_RT,
+	AP_R,
+	AP_RB,
+	AP_B,
+	AP_LB,
+	AP_L,
+	NUM_AP
 };
 
 enum MOUSE_CURSOR_TYPE {
@@ -68,14 +68,14 @@ public:
 class CGTMetadata
 {
 public:
-	CGTMetadata() : frameIndex(0), m_bGarbageDump(false){}
+	CGTMetadata() : frameIndex(0), garbageDump(false) {}
 	void clear() { this->vecObjects.clear(); }
 	void insert(CGTObjectInfo newObject);
 	CGTObjectInfo *GetObjectInfo(int id);
 	bool writefile(const CString strPath);
-	bool readfile(const CString strPath);	
+	bool readfile(const CString strPath);
 	int frameIndex;
-	bool m_bGarbageDump;
+	bool garbageDump;
 	std::vector<CGTObjectInfo> vecObjects;
 };
 
@@ -88,7 +88,7 @@ class CGroundTruthMakerDlg : public CDialogEx
 public:
 	CGroundTruthMakerDlg(CWnd* pParent = NULL);	// standard constructor
 
-	// Dialog Data
+												// Dialog Data
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_GROUNDTRUTHMAKER_DIALOG };
 #endif
@@ -137,13 +137,11 @@ protected:
 	//---------------------------------------------------------------------	
 	int top, bottom, right, left;
 	bool m_bDataChanged;
-	CGTMetadata m_cCurMetadata;	
+	CGTMetadata m_cCurMetadata;
 	CGTObjectInfo* m_ptCurObject;
-	CGTMetadata m_cFindMetadata;;
-	CGTObjectInfo* m_ptFindObject;
 	CString m_strVideoName;
 	CString m_strMetadataFileDir;
-	
+
 	HICON m_hIcon;
 
 	// Video streaming related
@@ -152,7 +150,7 @@ protected:
 	CRect m_rectViewer;
 
 	bool m_bVideoOnRead;
-	cv::VideoCapture *m_pVideoCapture;	
+	cv::VideoCapture *m_pVideoCapture;
 	int m_nNumVideoFrames;
 	int m_nCurFrameIdx;
 	int m_nCurID;
@@ -163,7 +161,7 @@ protected:
 	CSliderCtrl m_ctrVideoSlider;
 
 	UINT m_nRadioButton;
-	CComboBox m_comboCategory;	
+	CComboBox m_comboCategory;
 
 	// GUI FSM related
 	ADJUST_POINT m_nCurAdjustingPoint;
@@ -171,6 +169,6 @@ protected:
 	HCURSOR m_arrCursors[NUM_MCT];
 	MOUSE_CURSOR_TYPE m_arrApCursorTypes[NUM_AP];
 	GUI_STATE m_nCurrState;
-	GUI_STATE m_nNextState;	
+	GUI_STATE m_nNextState;
 
 };
