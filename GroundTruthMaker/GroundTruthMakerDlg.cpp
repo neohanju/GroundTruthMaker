@@ -415,7 +415,13 @@ BOOL CGroundTruthMakerDlg::OnInitDialog()
 	// radio button for select input mode
 	CButton* pButton = (CButton*)GetDlgItem(IDC_RADIO_BOX);
 	pButton->SetCheck(true);
-
+	
+	GetDlgItem(IDC_RADIO_HEAD)->EnableWindow(FALSE);
+	GetDlgItem(IDC_RADIO_L_HAND)->EnableWindow(FALSE);          //
+	GetDlgItem(IDC_RADIO_R_HAND)->EnableWindow(FALSE);
+	GetDlgItem(IDC_RADIO_L_FOOT)->EnableWindow(FALSE);
+	GetDlgItem(IDC_RADIO_R_FOOT)->EnableWindow(FALSE);
+	
 	// initialize current object info
 	m_nCurID = 0;
 	m_ptCurObject = m_cCurMetadata.GetObjectInfo(m_nCurID);
@@ -602,6 +608,7 @@ bool CGroundTruthMakerDlg::ReadFrame(int position, bool bShowFrame)
 	this->ReadMetadata();
 	m_ptCurObject = m_cCurMetadata.GetObjectInfo(m_nCurID);
 
+
 	if (bShowFrame)
 		this->ShowFrame();
 
@@ -638,6 +645,26 @@ void CGroundTruthMakerDlg::ShowFrame()
 	m_matVideoFrame.cols * rate,
 	m_matVideoFrame.rows * rate);
 	*/
+
+	if (m_ptCurObject->boundingBox.left == 0 && m_ptCurObject->boundingBox.right == 0)
+	{
+		((CButton*)GetDlgItem(IDC_RADIO_BOX))->SetCheck(true);
+		m_nRadioButton = 0;
+		GetDlgItem(IDC_RADIO_HEAD)->EnableWindow(FALSE);
+		GetDlgItem(IDC_RADIO_L_HAND)->EnableWindow(FALSE);    
+		GetDlgItem(IDC_RADIO_R_HAND)->EnableWindow(FALSE);               
+		GetDlgItem(IDC_RADIO_L_FOOT)->EnableWindow(FALSE);
+		GetDlgItem(IDC_RADIO_R_FOOT)->EnableWindow(FALSE);
+		m_nCurrState = GUI_STATE_SET_BOX_LT;
+	}
+	else
+	{
+		GetDlgItem(IDC_RADIO_HEAD)->EnableWindow(TRUE);
+		GetDlgItem(IDC_RADIO_L_HAND)->EnableWindow(TRUE);
+		GetDlgItem(IDC_RADIO_R_HAND)->EnableWindow(TRUE);
+		GetDlgItem(IDC_RADIO_L_FOOT)->EnableWindow(TRUE);
+		GetDlgItem(IDC_RADIO_R_FOOT)->EnableWindow(TRUE);
+	}                                                                          //JM: 기능은 하지만 이렇게 하는게 맞는지 의문. 반복문으로 대체 할 수 있을지도.
 
 	RECT clientRect;
 	m_csVideoFrame.GetClientRect(&clientRect);
@@ -725,6 +752,7 @@ void CGroundTruthMakerDlg::ShowFrame()
 		CPen* oldPen = dc->SelectObject(&pen);
 
 		// body parts
+		CPoint drawingPoint;
 		for (int j = 0; j < NUM_PARTS; j++)
 		{
 			if (0 == m_cCurMetadata.vecObjects[i].partPoints[j].x
@@ -732,23 +760,39 @@ void CGroundTruthMakerDlg::ShowFrame()
 			{
 				continue;
 			}
+			drawingPoint = m_cCurMetadata.vecObjects[i].partPoints[j];
+			drawingPoint.x += m_rectViewer.left;
+			drawingPoint.y += m_rectViewer.top;
 			dc->Rectangle(
-				m_cCurMetadata.vecObjects[i].partPoints[j].x - 1,
-				m_cCurMetadata.vecObjects[i].partPoints[j].y - 1,
-				m_cCurMetadata.vecObjects[i].partPoints[j].x + 1,
-				m_cCurMetadata.vecObjects[i].partPoints[j].y + 1);
+				drawingPoint.x - 1,
+				drawingPoint.y - 1,
+				drawingPoint.x + 1,
+				drawingPoint.y + 1);
+/*
+			dc->Ellipse(
+				drawingPoint.x-7,
+				drawingPoint.y-7,
+				drawingPoint.x + 7,
+				drawingPoint.y + 7);
+*/
 		}
-
+		
 
 		if (m_cCurMetadata.vecObjects[i].boundingBox.left != m_cCurMetadata.vecObjects[i].boundingBox.right
 			&& m_cCurMetadata.vecObjects[i].boundingBox.top != m_cCurMetadata.vecObjects[i].boundingBox.bottom)
 		{
+			CRect drawingRect = m_cCurMetadata.vecObjects[i].boundingBox;
+			drawingRect.left += m_rectViewer.left;
+			drawingRect.right += m_rectViewer.left;
+			drawingRect.top += m_rectViewer.top;
+			drawingRect.bottom += m_rectViewer.top;
+
 			// bounding box
 			dc->Rectangle(
-				m_cCurMetadata.vecObjects[i].boundingBox.left,
-				m_cCurMetadata.vecObjects[i].boundingBox.top,
-				m_cCurMetadata.vecObjects[i].boundingBox.right,
-				m_cCurMetadata.vecObjects[i].boundingBox.bottom);
+				drawingRect.left,
+				drawingRect.top,
+				drawingRect.right,
+				drawingRect.bottom);
 
 
 			// adjustable points
@@ -759,7 +803,7 @@ void CGroundTruthMakerDlg::ShowFrame()
 				for (int k = 0; k < NUM_AP; k++)
 				{
 					dc->Rectangle(GetAdjustPointRegion(
-						m_cCurMetadata.vecObjects[i].boundingBox, (ADJUST_POINT)k, m_rectViewer));
+						drawingRect, (ADJUST_POINT)k, m_rectViewer)); 
 				}
 			}
 
@@ -769,7 +813,7 @@ void CGroundTruthMakerDlg::ShowFrame()
 			dc->SetTextColor(penColor);
 			dc->SetBkColor(RGB(0, 0, 0));
 			dc->TextOut(
-				m_cCurMetadata.vecObjects[i].boundingBox.left + 1,
+				drawingRect.left + 1,
 				m_cCurMetadata.vecObjects[i].boundingBox.top + 1,
 				strID);
 		}
@@ -853,6 +897,12 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 	bool bViewUpdate = false;
 	bool bOnAdjustablePoints = false;
 	CString strStatic;
+	CPoint relativePoint(point.x - m_rectViewer.left, point.y - m_rectViewer.top);
+	CRect originalRect = m_cCurMetadata.vecObjects[m_nCurID].boundingBox;
+	originalRect.left += m_rectViewer.left;
+	originalRect.right += m_rectViewer.left;
+	originalRect.top += m_rectViewer.top;
+	originalRect.bottom += m_rectViewer.top;
 
 	switch (m_nCurrState)
 	{
@@ -862,8 +912,8 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 		{
 			for (int i = 0; i < NUM_AP && m_ptCurObject->valid; i++)
 			{
-				if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, m_rectViewer).PtInRect(point))
-				{
+				if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, m_rectViewer).PtInRect(relativePoint))       //m_ptCurObject->boundingBox =>originalRect
+				{																										//PtInRect(point) =>relativePoint
 					m_nCursorType = m_arrApCursorTypes[i];
 					::SetCursor(m_arrCursors[m_nCursorType]);
 					break;
@@ -876,8 +926,12 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 			for (int i = 0; i < NUM_AP && m_ptCurObject->valid; i++)
 			{
 				CRect debugRect = GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, m_rectViewer);
-				if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, m_rectViewer).PtInRect(point))
-				{
+				/*debugRect.left += m_rectViewer.left;
+				debugRect.top += m_rectViewer.right;
+				debugRect.right += m_rectViewer.left;
+				debugRect.bottom = m_rectViewer.right;*/
+				if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, m_rectViewer).PtInRect(relativePoint))  //m_ptCurObject->boundingBox =>originalRect
+				{																											//PtInRect(point) =>relativePoint
 					bOnAdjustablePoints = true;
 					break;
 				}
@@ -890,11 +944,12 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 		}
 		break;
 	case GUI_STATE_ADJUST_BODY_BOX:
+		
 		// renew bounding box with adjusting points
 		m_ptCurObject->boundingBox = GetAdjustedRect(
-			m_ptCurObject->boundingBox,
+			m_ptCurObject->boundingBox,									
 			m_nCurAdjustingPoint,
-			point,
+			relativePoint,
 			m_rectViewer);
 		strStatic.Format(_T("(%d, %d, %d, %d)"),
 			m_ptCurObject->boundingBox.left,
@@ -905,8 +960,8 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 		bViewUpdate = true;
 		break;
 	case GUI_STATE_SET_BOX_RB:
-		m_ptCurObject->boundingBox.right = MAX(m_rectViewer.left, MIN(point.x, m_rectViewer.right - 1));
-		m_ptCurObject->boundingBox.bottom = MAX(m_rectViewer.top, MIN(point.y, m_rectViewer.bottom - 1));
+		m_ptCurObject->boundingBox.right = MAX(0, MIN(relativePoint.x, m_rectViewer.right - m_rectViewer.left -1));
+		m_ptCurObject->boundingBox.bottom = MAX(0, MIN(relativePoint.y, m_rectViewer.bottom - m_rectViewer.top -1));
 		strStatic.Format(_T("(%d, %d, %d, %d)"),
 			m_ptCurObject->boundingBox.left,
 			m_ptCurObject->boundingBox.top,
@@ -929,7 +984,7 @@ void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	CString strStatic;
 	bool bAdjusting = false;
-
+	CPoint relativePoint(point.x - m_rectViewer.left, point.y - m_rectViewer.top);
 	if (m_rectViewer.PtInRect(point))
 	{
 		switch (m_nCurrState)
@@ -937,7 +992,7 @@ void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 		case GUI_STATE_SET_BOX_LT:
 			for (int i = 0; i < NUM_AP && m_ptCurObject->valid; i++)
 			{
-				if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, m_rectViewer).PtInRect(point))
+				if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, m_rectViewer).PtInRect(relativePoint)) //PtInRect(point) =>relativePoint
 				{
 					m_nCurAdjustingPoint = (ADJUST_POINT)i;
 					bAdjusting = true;
@@ -946,10 +1001,10 @@ void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 			}
 			if (!bAdjusting)
 			{
-				m_ptCurObject->boundingBox.left = point.x;
-				m_ptCurObject->boundingBox.top = point.y;
-				m_ptCurObject->boundingBox.right = point.x;
-				m_ptCurObject->boundingBox.bottom = point.y;
+				m_ptCurObject->boundingBox.left = relativePoint.x;
+				m_ptCurObject->boundingBox.top = relativePoint.y;
+				m_ptCurObject->boundingBox.right = relativePoint.x;
+				m_ptCurObject->boundingBox.bottom = relativePoint.y;
 				m_ptCurObject->valid = true;
 				m_nNextState = GUI_STATE_SET_BOX_RB;
 			}
@@ -960,7 +1015,7 @@ void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 			m_bDataChanged = true;
 			break;
 		case GUI_STATE_SET_BODY_PART:
-			m_ptCurObject->partPoints[m_nRadioButton - 1] = point;
+			m_ptCurObject->partPoints[m_nRadioButton - 1] = relativePoint;
 			strStatic.Format(_T("(%d, %d)"),
 				m_ptCurObject->partPoints[m_nRadioButton - 1].x,
 				m_ptCurObject->partPoints[m_nRadioButton - 1].y);
