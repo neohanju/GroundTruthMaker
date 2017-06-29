@@ -140,6 +140,7 @@ protected:
 	void ReadMetadata();
 	void Track();
 	void InitBodyPointColor();
+	void CheckCorrectBoundingBox();
 
 	//---------------------------------------------------------------------
 	// VARIABLES
@@ -187,4 +188,5 @@ protected:
 	MOUSE_CURSOR_TYPE m_arrApCursorTypes[NUM_AP];
 	GUI_STATE m_nCurrState;
 	GUI_STATE m_nNextState;	
+
 };

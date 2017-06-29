@@ -263,7 +263,7 @@ bool CGTMetadata::readfile(const CString strPath)
 			this->vecObjects.push_back(newObject);
 			iter++;
 		}
-		this->bGarbageDump = 1 == _ttoi(strCurLine)? true : false;
+		this->bGarbageDump = 1 == _ttoi(strCurLine) ? true : false;
 		file.Close();
 
 		assert(numObject == (int)this->vecObjects.size());
@@ -354,7 +354,7 @@ BEGIN_MESSAGE_MAP(CGroundTruthMakerDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_CLEAR, &CGroundTruthMakerDlg::OnBnClickedButtonClear)
 	ON_WM_SETCURSOR()
 	ON_CBN_SELCHANGE(IDC_COMBO_CATEGORY, &CGroundTruthMakerDlg::OnSelchangeComboCategory)
-//	ON_BN_CLICKED(IDC_ID_SET, &CGroundTruthMakerDlg::OnClickedIdSet)
+	//	ON_BN_CLICKED(IDC_ID_SET, &CGroundTruthMakerDlg::OnClickedIdSet)
 	ON_BN_CLICKED(IDC_GO, &CGroundTruthMakerDlg::OnClickedGo)
 	ON_BN_CLICKED(IDC_BUTTON_DELETE_FRAME_INFO, &CGroundTruthMakerDlg::OnClickedButtonDelete)
 	ON_BN_CLICKED(IDC_CHECK_EVENT_GARGAGE, &CGroundTruthMakerDlg::OnClickedCheckEventGargage)
@@ -403,7 +403,7 @@ BOOL CGroundTruthMakerDlg::OnInitDialog()
 	m_ctrVideoSlider.SetLineSize(1);    // moving interval of keyboard direction keys
 	m_ctrVideoSlider.SetPageSize(100);  // moving interval of page up/down keys 
 
-	// ID
+										// ID
 	m_cSpinBtnCtrl.SetRange32(0, INT_MAX);
 
 	// category
@@ -414,13 +414,13 @@ BOOL CGroundTruthMakerDlg::OnInitDialog()
 	// radio button for select input mode
 	CButton* pButton = (CButton*)GetDlgItem(IDC_RADIO_BOX);
 	pButton->SetCheck(true);
-	
+
 	GetDlgItem(IDC_RADIO_HEAD)->EnableWindow(FALSE);
 	GetDlgItem(IDC_RADIO_L_HAND)->EnableWindow(FALSE);          //
 	GetDlgItem(IDC_RADIO_R_HAND)->EnableWindow(FALSE);
 	GetDlgItem(IDC_RADIO_L_FOOT)->EnableWindow(FALSE);
 	GetDlgItem(IDC_RADIO_R_FOOT)->EnableWindow(FALSE);
-	
+
 	// initialize current object info
 	m_nCurID = 0;
 	m_ptCurObject = m_cCurMetadata.GetObjectInfo(m_nCurID);
@@ -627,11 +627,11 @@ void CGroundTruthMakerDlg::ShowFrame()
 		((CButton*)GetDlgItem(IDC_RADIO_BOX))->SetCheck(true);
 		m_nRadioButton = 0;
 		GetDlgItem(IDC_RADIO_HEAD)->EnableWindow(FALSE);
-		GetDlgItem(IDC_RADIO_L_HAND)->EnableWindow(FALSE);    
-		GetDlgItem(IDC_RADIO_R_HAND)->EnableWindow(FALSE);               
+		GetDlgItem(IDC_RADIO_L_HAND)->EnableWindow(FALSE);
+		GetDlgItem(IDC_RADIO_R_HAND)->EnableWindow(FALSE);
 		GetDlgItem(IDC_RADIO_L_FOOT)->EnableWindow(FALSE);                  // 에러 있음.
 		GetDlgItem(IDC_RADIO_R_FOOT)->EnableWindow(FALSE);
-		m_nCurrState = GUI_STATE_SET_BOX_LT;
+		//m_nCurrState = GUI_STATE_SET_BOX_LT;
 	}
 	else
 	{
@@ -721,30 +721,30 @@ void CGroundTruthMakerDlg::ShowFrame()
 		COLORREF penColor = RGB(170, 170, 170);
 		/*if (m_cCurMetadata.vecObjects[i].id == m_nCurID)
 		{
-			penColor = RGB(255, 0, 0);
+		penColor = RGB(255, 0, 0);
 		}*/
 
 		InitBodyPointColor(); // Color vector initialize
 		CPen pen;
-		
+
 		//Select Pen Color Cur or prev
 		if (m_cCurMetadata.vecObjects[i].id == m_nCurID)
 		{
 			pen.CreatePen(PS_DOT, 3, pointColor[0]);
 		}
-		else 
+		else
 		{
-			pen.CreatePen(PS_DOT, 3, RGB(170,170,170));
+			pen.CreatePen(PS_DOT, 3, RGB(170, 170, 170));
 		}
 
 		CPen* oldPen = dc->SelectObject(&pen);
 		CPoint drawingPoint;
 		for (int j = 0; j < NUM_PARTS; j++)
 		{
-			if (0 == m_cCurMetadata.vecObjects[i].partPoints[j].x 
-				&& 0 == m_cCurMetadata.vecObjects[i].partPoints[j].y
-				&& m_matVideoFrame.cols == m_cCurMetadata.vecObjects[i].partPoints[j].x
-				&& m_matVideoFrame.rows == m_cCurMetadata.vecObjects[i].partPoints[j].y)
+			if (0 == m_cCurMetadata.vecObjects[i].partPoints[j].x
+				|| 0 == m_cCurMetadata.vecObjects[i].partPoints[j].y
+				|| m_matVideoFrame.cols == m_cCurMetadata.vecObjects[i].partPoints[j].x
+				|| m_matVideoFrame.rows == m_cCurMetadata.vecObjects[i].partPoints[j].y)
 			{
 				continue;
 			}
@@ -756,13 +756,13 @@ void CGroundTruthMakerDlg::ShowFrame()
 				drawingPoint.y - 1,
 				drawingPoint.x + 1,
 				drawingPoint.y + 1);
-			
+
 			dc->Ellipse(
-				drawingPoint.x-7,
-				drawingPoint.y-7,
+				drawingPoint.x - 7,
+				drawingPoint.y - 7,
 				drawingPoint.x + 7,
 				drawingPoint.y + 7);
-			
+
 			//Select Pen Color Body Parts
 			if (m_cCurMetadata.vecObjects[i].id == m_nCurID)
 			{
@@ -775,7 +775,7 @@ void CGroundTruthMakerDlg::ShowFrame()
 			{
 				dc->SelectObject(oldPen);
 				pen.DeleteObject();
-				pen.CreatePen(PS_DOT, 3, RGB(170,170,170));
+				pen.CreatePen(PS_DOT, 3, RGB(170, 170, 170));
 				oldPen = dc->SelectObject(&pen);
 			}
 		}
@@ -785,7 +785,7 @@ void CGroundTruthMakerDlg::ShowFrame()
 		{
 			dc->SelectObject(oldPen);
 			pen.DeleteObject();
-			pen.CreatePen(PS_DOT, 3, RGB(255,0,0));
+			pen.CreatePen(PS_DOT, 3, RGB(255, 0, 0));
 			oldPen = dc->SelectObject(&pen);
 		}
 		else
@@ -854,7 +854,7 @@ void CGroundTruthMakerDlg::UpdateObjectInfoField()
 		strID.Format(_T("%d"), m_nCurID);
 		SetDlgItemText(IDC_EDIT_ID, strID);
 	}
-		
+
 	m_comboCategory.SetCurSel(m_ptCurObject->category);
 	strStatic.Format(_T("(%d, %d, %d, %d)"),
 		m_ptCurObject->boundingBox.left,
@@ -948,10 +948,10 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 				for (int i = 0; i < NUM_AP && m_ptCurObject->valid; i++)
 				{
 					CRect debugRect = GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, originFrame);   //m_rectViewer => matVideoFrame
-					/*debugRect.left += m_rectViewer.left;
-					debugRect.top += m_rectViewer.right;
-					debugRect.right += m_rectViewer.left;
-					debugRect.bottom = m_rectViewer.right;*/
+																														/*debugRect.left += m_rectViewer.left;
+																														debugRect.top += m_rectViewer.right;
+																														debugRect.right += m_rectViewer.left;
+																														debugRect.bottom = m_rectViewer.right;*/
 					if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, originFrame).PtInRect(relativePoint))  //m_ptCurObject->boundingBox =>originalRect, m_rectViewer => matVideoFrame
 					{																											//PtInRect(point) =>relativePoint
 						bOnAdjustablePoints = true;
@@ -982,8 +982,8 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 			bViewUpdate = true;
 			break;
 		case GUI_STATE_SET_BOX_RB:
-			m_ptCurObject->boundingBox.right = MAX(0, MIN(relativePoint.x, m_matVideoFrame.cols - 1));   //
-			m_ptCurObject->boundingBox.bottom = MAX(0, MIN(relativePoint.y, m_matVideoFrame.rows - 1));   //
+			m_ptCurObject->boundingBox.right = MAX(0, MIN(relativePoint.x, m_matVideoFrame.cols - 1));
+			m_ptCurObject->boundingBox.bottom = MAX(0, MIN(relativePoint.y, m_matVideoFrame.rows - 1));
 			strStatic.Format(_T("(%d, %d, %d, %d)"),
 				m_ptCurObject->boundingBox.left,
 				m_ptCurObject->boundingBox.top,
@@ -1008,8 +1008,8 @@ void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 	CRect originFrame(0, 0, m_matVideoFrame.cols, m_matVideoFrame.rows);
 	CString strStatic;
 	bool bAdjusting = false;
-	CPoint relativePoint((point.x - m_rectViewer.left)* m_matVideoFrame.cols / m_rectViewer.Width(), 
-						 (point.y - m_rectViewer.top)*m_matVideoFrame.rows / m_rectViewer.Height());
+	CPoint relativePoint((point.x - m_rectViewer.left)* m_matVideoFrame.cols / m_rectViewer.Width(),
+		(point.y - m_rectViewer.top)*m_matVideoFrame.rows / m_rectViewer.Height());
 	if (m_rectViewer.PtInRect(point))
 	{
 		switch (m_nCurrState)
@@ -1076,11 +1076,11 @@ void CGroundTruthMakerDlg::OnLButtonUp(UINT nFlags, CPoint point)
 		m_nNextState = GUI_STATE_SET_BOX_LT;
 		m_bDataChanged = true;
 		break;
-	default:		
+	default:
 		break;
 	}
 	m_nCurrState = m_nNextState;
-
+	CheckCorrectBoundingBox();        // left가 right보다 크거나 or Top이 Bottom보다 크면 바꿔주는 함수 
 	this->ShowFrame();
 
 	CDialogEx::OnLButtonUp(nFlags, point);
@@ -1090,7 +1090,7 @@ void CGroundTruthMakerDlg::OnLButtonUp(UINT nFlags, CPoint point)
 void CGroundTruthMakerDlg::OnClickedRadioBox(UINT msg)
 {
 	UpdateData(TRUE);
-	m_nCurrState = m_nRadioButton == 0 ? GUI_STATE_SET_BOX_LT : GUI_STATE_SET_BODY_PART;	
+	m_nCurrState = m_nRadioButton == 0 ? GUI_STATE_SET_BOX_LT : GUI_STATE_SET_BODY_PART;
 	this->ShowFrame();
 }
 
@@ -1273,4 +1273,22 @@ void CGroundTruthMakerDlg::InitBodyPointColor()
 }
 
 
-
+void CGroundTruthMakerDlg::CheckCorrectBoundingBox()
+{
+	CPoint temp;
+	CString strStatic;
+	temp.x = m_ptCurObject->boundingBox.right;            //left가 right보다 크면 바꾸기 위한 임시저장소
+	temp.y = m_ptCurObject->boundingBox.bottom;             //bottom가 top보다 크면 바꾸기 위한 임시저장소
+	
+	m_ptCurObject->boundingBox.right = MAX(temp.x, m_ptCurObject->boundingBox.left);
+	m_ptCurObject->boundingBox.bottom = MAX(temp.y, m_ptCurObject->boundingBox.top);
+	m_ptCurObject->boundingBox.left = MIN(temp.x, m_ptCurObject->boundingBox.left);
+	m_ptCurObject->boundingBox.top = MIN(temp.y, m_ptCurObject->boundingBox.top);
+	
+	strStatic.Format(_T("(%d, %d, %d, %d)"),
+		m_ptCurObject->boundingBox.left,
+		m_ptCurObject->boundingBox.top,
+		m_ptCurObject->boundingBox.right,
+		m_ptCurObject->boundingBox.bottom);
+	SetDlgItemText(IDC_STATIC_BOX_INFO, strStatic);
+}
