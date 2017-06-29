@@ -127,6 +127,7 @@ public:
 	afx_msg void OnEnChangeEditId();
 	BOOL PreTranslateMessage(MSG *pMsg);
 
+
 protected:
 	bool OpenVideo(const std::string strVideoPath);
 	bool CloseVideo();
@@ -138,6 +139,7 @@ protected:
 	void SaveMetadata();
 	void ReadMetadata();
 	void Track();
+	void InitBodyPointColor();
 
 	//---------------------------------------------------------------------
 	// VARIABLES
@@ -150,6 +152,7 @@ protected:
 	CString m_strMetadataFileDir;
 
 	HICON m_hIcon;
+	std::vector<COLORREF> pointColor;
 
 	// Video streaming related
 	CStatic m_csVideoFrame;

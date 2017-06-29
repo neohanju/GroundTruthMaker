@@ -195,8 +195,7 @@ bool CGTMetadata::writefile(const CString strPath)
 		{
 			if (!vecObjects[i].valid) { continue; }
 			outputFile << vecObjects[i].id << " ";
-			outputFile << vecObjects[i].category << " ";
-			outputFile
+			outputFile << vecObjects[i].category << " "
 				<< vecObjects[i].boundingBox.left << " "
 				<< vecObjects[i].boundingBox.top << " "
 				<< vecObjects[i].boundingBox.right << " "
@@ -623,29 +622,6 @@ void CGroundTruthMakerDlg::ShowFrame()
 	//----------------------------------------------------------
 	// DRAW VIDEO FRAME TO STATIC IMAGE
 	//----------------------------------------------------------
-	/*
-	RECT clientRect;
-	m_csVideoFrame.GetClientRect(&clientRect);
-	int height, width;
-	float rate;
-	if (m_matVideoFrame.cols / m_matVideoFrame.rows > (clientRect.right - clientRect.left)/ (clientRect.bottom - clientRect.top))
-	{
-	rate = (clientRect.bottom - clientRect.top) / m_matVideoFrame.rows;
-	height = (clientRect.bottom - clientRect.top);
-	width = m_matVideoFrame.cols * rate;
-	}
-	else
-	{
-	rate = (float(clientRect.right - clientRect.left) / m_matVideoFrame.cols);
-	height = (clientRect.bottom - clientRect.top);
-	width = m_matVideoFrame.cols * rate;
-	}
-
-	cv::Size rectSize(
-	m_matVideoFrame.cols * rate,
-	m_matVideoFrame.rows * rate);
-	*/
-
 	if (m_ptCurObject->boundingBox.left == 0 && m_ptCurObject->boundingBox.right == 0)
 	{
 		((CButton*)GetDlgItem(IDC_RADIO_BOX))->SetCheck(true);
@@ -653,7 +629,7 @@ void CGroundTruthMakerDlg::ShowFrame()
 		GetDlgItem(IDC_RADIO_HEAD)->EnableWindow(FALSE);
 		GetDlgItem(IDC_RADIO_L_HAND)->EnableWindow(FALSE);    
 		GetDlgItem(IDC_RADIO_R_HAND)->EnableWindow(FALSE);               
-		GetDlgItem(IDC_RADIO_L_FOOT)->EnableWindow(FALSE);
+		GetDlgItem(IDC_RADIO_L_FOOT)->EnableWindow(FALSE);                  // 에러 있음.
 		GetDlgItem(IDC_RADIO_R_FOOT)->EnableWindow(FALSE);
 		m_nCurrState = GUI_STATE_SET_BOX_LT;
 	}
@@ -743,49 +719,91 @@ void CGroundTruthMakerDlg::ShowFrame()
 		if (!m_cCurMetadata.vecObjects[i].valid) { continue; }
 
 		COLORREF penColor = RGB(170, 170, 170);
-		if (m_cCurMetadata.vecObjects[i].id == m_nCurID)
+		/*if (m_cCurMetadata.vecObjects[i].id == m_nCurID)
 		{
 			penColor = RGB(255, 0, 0);
-		}
-		CPen pen;
-		pen.CreatePen(PS_DOT, 3, penColor);
-		CPen* oldPen = dc->SelectObject(&pen);
+		}*/
 
-		// body parts
+		InitBodyPointColor(); // Color vector initialize
+		CPen pen;
+		
+		//Select Pen Color Cur or prev
+		if (m_cCurMetadata.vecObjects[i].id == m_nCurID)
+		{
+			pen.CreatePen(PS_DOT, 3, pointColor[0]);
+		}
+		else 
+		{
+			pen.CreatePen(PS_DOT, 3, RGB(170,170,170));
+		}
+
+		CPen* oldPen = dc->SelectObject(&pen);
 		CPoint drawingPoint;
 		for (int j = 0; j < NUM_PARTS; j++)
 		{
-			if (0 == m_cCurMetadata.vecObjects[i].partPoints[j].x
-				&& 0 == m_cCurMetadata.vecObjects[i].partPoints[j].y)
+			if (0 == m_cCurMetadata.vecObjects[i].partPoints[j].x 
+				&& 0 == m_cCurMetadata.vecObjects[i].partPoints[j].y
+				&& m_matVideoFrame.cols == m_cCurMetadata.vecObjects[i].partPoints[j].x
+				&& m_matVideoFrame.rows == m_cCurMetadata.vecObjects[i].partPoints[j].y)
 			{
 				continue;
 			}
 			drawingPoint = m_cCurMetadata.vecObjects[i].partPoints[j];
-			drawingPoint.x += m_rectViewer.left;
-			drawingPoint.y += m_rectViewer.top;
+			drawingPoint.x = drawingPoint.x * m_rectViewer.Width() / m_matVideoFrame.cols + m_rectViewer.left;
+			drawingPoint.y = drawingPoint.y * m_rectViewer.Height() / m_matVideoFrame.rows + m_rectViewer.top;
 			dc->Rectangle(
 				drawingPoint.x - 1,
 				drawingPoint.y - 1,
 				drawingPoint.x + 1,
 				drawingPoint.y + 1);
-/*
+			
 			dc->Ellipse(
 				drawingPoint.x-7,
 				drawingPoint.y-7,
 				drawingPoint.x + 7,
 				drawingPoint.y + 7);
-*/
+			
+			//Select Pen Color Body Parts
+			if (m_cCurMetadata.vecObjects[i].id == m_nCurID)
+			{
+				dc->SelectObject(oldPen);
+				pen.DeleteObject();
+				pen.CreatePen(PS_DOT, 3, pointColor[j + 1]);
+				oldPen = dc->SelectObject(&pen);
+			}
+			else
+			{
+				dc->SelectObject(oldPen);
+				pen.DeleteObject();
+				pen.CreatePen(PS_DOT, 3, RGB(170,170,170));
+				oldPen = dc->SelectObject(&pen);
+			}
 		}
-		
+
+		//Select Pen Color Bounding Box
+		if (m_cCurMetadata.vecObjects[i].id == m_nCurID)
+		{
+			dc->SelectObject(oldPen);
+			pen.DeleteObject();
+			pen.CreatePen(PS_DOT, 3, RGB(255,0,0));
+			oldPen = dc->SelectObject(&pen);
+		}
+		else
+		{
+			dc->SelectObject(oldPen);
+			pen.DeleteObject();
+			pen.CreatePen(PS_DOT, 3, RGB(170, 170, 170));
+			oldPen = dc->SelectObject(&pen);
+		}
 
 		if (m_cCurMetadata.vecObjects[i].boundingBox.left != m_cCurMetadata.vecObjects[i].boundingBox.right
 			&& m_cCurMetadata.vecObjects[i].boundingBox.top != m_cCurMetadata.vecObjects[i].boundingBox.bottom)
 		{
 			CRect drawingRect = m_cCurMetadata.vecObjects[i].boundingBox;
-			drawingRect.left += m_rectViewer.left;
-			drawingRect.right += m_rectViewer.left;
-			drawingRect.top += m_rectViewer.top;
-			drawingRect.bottom += m_rectViewer.top;
+			drawingRect.left = drawingRect.left * m_rectViewer.Width() / m_matVideoFrame.cols + m_rectViewer.left;
+			drawingRect.right = drawingRect.right * m_rectViewer.Width() / m_matVideoFrame.cols + m_rectViewer.left;
+			drawingRect.top = drawingRect.top * m_rectViewer.Height() / m_matVideoFrame.rows + m_rectViewer.top;
+			drawingRect.bottom = drawingRect.bottom * m_rectViewer.Height() / m_matVideoFrame.rows + m_rectViewer.top;
 
 			// bounding box
 			dc->Rectangle(
@@ -803,7 +821,7 @@ void CGroundTruthMakerDlg::ShowFrame()
 				for (int k = 0; k < NUM_AP; k++)
 				{
 					dc->Rectangle(GetAdjustPointRegion(
-						drawingRect, (ADJUST_POINT)k, m_rectViewer)); 
+						drawingRect, (ADJUST_POINT)k, m_rectViewer));
 				}
 			}
 
@@ -814,7 +832,7 @@ void CGroundTruthMakerDlg::ShowFrame()
 			dc->SetBkColor(RGB(0, 0, 0));
 			dc->TextOut(
 				drawingRect.left + 1,
-				m_cCurMetadata.vecObjects[i].boundingBox.top + 1,
+				drawingRect.top + 1,
 				strID);
 		}
 
@@ -896,83 +914,88 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 {
 	bool bViewUpdate = false;
 	bool bOnAdjustablePoints = false;
-	CString strStatic;
-	CPoint relativePoint(point.x - m_rectViewer.left, point.y - m_rectViewer.top);
-	CRect originalRect = m_cCurMetadata.vecObjects[m_nCurID].boundingBox;
-	originalRect.left += m_rectViewer.left;
-	originalRect.right += m_rectViewer.left;
-	originalRect.top += m_rectViewer.top;
-	originalRect.bottom += m_rectViewer.top;
-
-	switch (m_nCurrState)
+	if (m_bVideoOnRead)
 	{
-	case GUI_STATE_SET_BOX_LT:
-		// set mouse points
-		if (m_nCursorType == MCT_NORMAL)
+		CRect originFrame(0, 0, m_matVideoFrame.cols, m_matVideoFrame.rows);
+		CString strStatic;
+		CPoint relativePoint((point.x - m_rectViewer.left)* m_matVideoFrame.cols / m_rectViewer.Width(),
+			(point.y - m_rectViewer.top)*m_matVideoFrame.rows / m_rectViewer.Height());
+		CRect originalRect = m_cCurMetadata.vecObjects[m_nCurID].boundingBox;
+		originalRect.left = originalRect.left * m_rectViewer.Width() / m_matVideoFrame.cols + m_rectViewer.left;
+		originalRect.right = originalRect.right * m_rectViewer.Width() / m_matVideoFrame.cols + m_rectViewer.left;
+		originalRect.top = originalRect.top * m_rectViewer.Height() / m_matVideoFrame.rows + m_rectViewer.top;
+		originalRect.bottom = originalRect.bottom * m_rectViewer.Height() / m_matVideoFrame.rows + m_rectViewer.top;
+
+		switch (m_nCurrState)
 		{
-			for (int i = 0; i < NUM_AP && m_ptCurObject->valid; i++)
+		case GUI_STATE_SET_BOX_LT:
+			// set mouse points
+			if (m_nCursorType == MCT_NORMAL)
 			{
-				if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, m_rectViewer).PtInRect(relativePoint))       //m_ptCurObject->boundingBox =>originalRect
-				{																										//PtInRect(point) =>relativePoint
-					m_nCursorType = m_arrApCursorTypes[i];
+				for (int i = 0; i < NUM_AP && m_ptCurObject->valid; i++)
+				{
+					if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, originFrame).PtInRect(relativePoint))       //m_ptCurObject->boundingBox =>originalRect, m_rectViewer => m_matVideoFrame
+					{																										//PtInRect(point) =>relativePoint
+						m_nCursorType = m_arrApCursorTypes[i];
+						::SetCursor(m_arrCursors[m_nCursorType]);
+						break;
+					}
+				}
+			}
+			else
+			{
+				bOnAdjustablePoints = false;
+				for (int i = 0; i < NUM_AP && m_ptCurObject->valid; i++)
+				{
+					CRect debugRect = GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, originFrame);   //m_rectViewer => matVideoFrame
+					/*debugRect.left += m_rectViewer.left;
+					debugRect.top += m_rectViewer.right;
+					debugRect.right += m_rectViewer.left;
+					debugRect.bottom = m_rectViewer.right;*/
+					if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, originFrame).PtInRect(relativePoint))  //m_ptCurObject->boundingBox =>originalRect, m_rectViewer => matVideoFrame
+					{																											//PtInRect(point) =>relativePoint
+						bOnAdjustablePoints = true;
+						break;
+					}
+				}
+				if (!bOnAdjustablePoints)
+				{
+					m_nCursorType = MCT_NORMAL;
 					::SetCursor(m_arrCursors[m_nCursorType]);
-					break;
 				}
 			}
+			break;
+		case GUI_STATE_ADJUST_BODY_BOX:
+
+			// renew bounding box with adjusting points
+			m_ptCurObject->boundingBox = GetAdjustedRect(
+				m_ptCurObject->boundingBox,
+				m_nCurAdjustingPoint,
+				relativePoint,
+				originFrame);
+			strStatic.Format(_T("(%d, %d, %d, %d)"),
+				m_ptCurObject->boundingBox.left,
+				m_ptCurObject->boundingBox.top,
+				m_ptCurObject->boundingBox.right,
+				m_ptCurObject->boundingBox.bottom);
+			SetDlgItemText(IDC_STATIC_BOX_INFO, strStatic);
+			bViewUpdate = true;
+			break;
+		case GUI_STATE_SET_BOX_RB:
+			m_ptCurObject->boundingBox.right = MAX(0, MIN(relativePoint.x, m_matVideoFrame.cols - 1));   //
+			m_ptCurObject->boundingBox.bottom = MAX(0, MIN(relativePoint.y, m_matVideoFrame.rows - 1));   //
+			strStatic.Format(_T("(%d, %d, %d, %d)"),
+				m_ptCurObject->boundingBox.left,
+				m_ptCurObject->boundingBox.top,
+				m_ptCurObject->boundingBox.right,
+				m_ptCurObject->boundingBox.bottom);
+			SetDlgItemText(IDC_STATIC_BOX_INFO, strStatic);
+			bViewUpdate = true;
+			break;
+		default:
+			break;
 		}
-		else
-		{
-			bOnAdjustablePoints = false;
-			for (int i = 0; i < NUM_AP && m_ptCurObject->valid; i++)
-			{
-				CRect debugRect = GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, m_rectViewer);
-				/*debugRect.left += m_rectViewer.left;
-				debugRect.top += m_rectViewer.right;
-				debugRect.right += m_rectViewer.left;
-				debugRect.bottom = m_rectViewer.right;*/
-				if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, m_rectViewer).PtInRect(relativePoint))  //m_ptCurObject->boundingBox =>originalRect
-				{																											//PtInRect(point) =>relativePoint
-					bOnAdjustablePoints = true;
-					break;
-				}
-			}
-			if (!bOnAdjustablePoints)
-			{
-				m_nCursorType = MCT_NORMAL;
-				::SetCursor(m_arrCursors[m_nCursorType]);
-			}
-		}
-		break;
-	case GUI_STATE_ADJUST_BODY_BOX:
-		
-		// renew bounding box with adjusting points
-		m_ptCurObject->boundingBox = GetAdjustedRect(
-			m_ptCurObject->boundingBox,									
-			m_nCurAdjustingPoint,
-			relativePoint,
-			m_rectViewer);
-		strStatic.Format(_T("(%d, %d, %d, %d)"),
-			m_ptCurObject->boundingBox.left,
-			m_ptCurObject->boundingBox.top,
-			m_ptCurObject->boundingBox.right,
-			m_ptCurObject->boundingBox.bottom);
-		SetDlgItemText(IDC_STATIC_BOX_INFO, strStatic);		
-		bViewUpdate = true;
-		break;
-	case GUI_STATE_SET_BOX_RB:
-		m_ptCurObject->boundingBox.right = MAX(0, MIN(relativePoint.x, m_rectViewer.right - m_rectViewer.left -1));
-		m_ptCurObject->boundingBox.bottom = MAX(0, MIN(relativePoint.y, m_rectViewer.bottom - m_rectViewer.top -1));
-		strStatic.Format(_T("(%d, %d, %d, %d)"),
-			m_ptCurObject->boundingBox.left,
-			m_ptCurObject->boundingBox.top,
-			m_ptCurObject->boundingBox.right,
-			m_ptCurObject->boundingBox.bottom);
-		SetDlgItemText(IDC_STATIC_BOX_INFO, strStatic);		
-		bViewUpdate = true;
-		break;
-	default:		
-		break;
-	}	
+	}
 
 	if (bViewUpdate) { this->ShowFrame(); }
 
@@ -982,9 +1005,11 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 
 void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 {
+	CRect originFrame(0, 0, m_matVideoFrame.cols, m_matVideoFrame.rows);
 	CString strStatic;
 	bool bAdjusting = false;
-	CPoint relativePoint(point.x - m_rectViewer.left, point.y - m_rectViewer.top);
+	CPoint relativePoint((point.x - m_rectViewer.left)* m_matVideoFrame.cols / m_rectViewer.Width(), 
+						 (point.y - m_rectViewer.top)*m_matVideoFrame.rows / m_rectViewer.Height());
 	if (m_rectViewer.PtInRect(point))
 	{
 		switch (m_nCurrState)
@@ -992,7 +1017,7 @@ void CGroundTruthMakerDlg::OnLButtonDown(UINT nFlags, CPoint point)
 		case GUI_STATE_SET_BOX_LT:
 			for (int i = 0; i < NUM_AP && m_ptCurObject->valid; i++)
 			{
-				if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, m_rectViewer).PtInRect(relativePoint)) //PtInRect(point) =>relativePoint
+				if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, originFrame).PtInRect(relativePoint)) //PtInRect(point) =>relativePoint  m_rectViewer => matVideoFrame
 				{
 					m_nCurAdjustingPoint = (ADJUST_POINT)i;
 					bAdjusting = true;
@@ -1198,6 +1223,7 @@ void CGroundTruthMakerDlg::Track()
 
 	// initialize trackers
 	std::vector<KCFTracker> vecTrackers(0);
+
 	for (int objIdx = 0; objIdx < m_cCurMetadata.vecObjects.size(); objIdx++)
 	{
 		bool HOG = true;
@@ -1225,7 +1251,7 @@ void CGroundTruthMakerDlg::Track()
 			m_cCurMetadata.vecObjects[objIdx].boundingBox =
 				CVRect2CRect(vecTrackers[objIdx].update(m_matVideoFrame));
 		}
-		m_bDataChanged = true;
+
 	}
 
 	this->ShowFrame();
@@ -1233,4 +1259,18 @@ void CGroundTruthMakerDlg::Track()
 
 //()()
 //('')HAANJU.YOO
+
+
+
+void CGroundTruthMakerDlg::InitBodyPointColor()
+{
+	pointColor.push_back(RGB(0, 0, 0));
+	pointColor.push_back(RGB(0, 255, 0));
+	pointColor.push_back(RGB(0, 0, 255));
+	pointColor.push_back(RGB(255, 255, 0));
+	pointColor.push_back(RGB(255, 0, 255));
+	pointColor.push_back(RGB(0, 255, 255));
+}
+
+
 
