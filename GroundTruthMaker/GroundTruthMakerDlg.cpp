@@ -626,21 +626,26 @@ void CGroundTruthMakerDlg::ShowFrame()
 	{
 		((CButton*)GetDlgItem(IDC_RADIO_BOX))->SetCheck(true);
 		m_nRadioButton = 0;
-		GetDlgItem(IDC_RADIO_HEAD)->EnableWindow(FALSE);
-		GetDlgItem(IDC_RADIO_L_HAND)->EnableWindow(FALSE);
-		GetDlgItem(IDC_RADIO_R_HAND)->EnableWindow(FALSE);
-		GetDlgItem(IDC_RADIO_L_FOOT)->EnableWindow(FALSE);                  // 에러 있음.
-		GetDlgItem(IDC_RADIO_R_FOOT)->EnableWindow(FALSE);
-		//m_nCurrState = GUI_STATE_SET_BOX_LT;
+		for (int i = IDC_RADIO_HEAD; i <= IDC_RADIO_R_FOOT; i++)
+		{
+			GetDlgItem(i)->EnableWindow(FALSE);
+			((CButton*)GetDlgItem(i))->SetCheck(false);
+
+		}
 	}
 	else
 	{
-		GetDlgItem(IDC_RADIO_HEAD)->EnableWindow(TRUE);
+		for (int i = IDC_RADIO_HEAD; i <= IDC_RADIO_R_FOOT; i++)
+		{
+			GetDlgItem(i)->EnableWindow(TRUE);
+
+		}
+		/*GetDlgItem(IDC_RADIO_HEAD)->EnableWindow(TRUE);
 		GetDlgItem(IDC_RADIO_L_HAND)->EnableWindow(TRUE);
 		GetDlgItem(IDC_RADIO_R_HAND)->EnableWindow(TRUE);
 		GetDlgItem(IDC_RADIO_L_FOOT)->EnableWindow(TRUE);
-		GetDlgItem(IDC_RADIO_R_FOOT)->EnableWindow(TRUE);
-	}                                                                          //JM: 기능은 하지만 이렇게 하는게 맞는지 의문. 반복문으로 대체 할 수 있을지도.
+		GetDlgItem(IDC_RADIO_R_FOOT)->EnableWindow(TRUE);*/
+	}
 
 	RECT clientRect;
 	m_csVideoFrame.GetClientRect(&clientRect);
@@ -948,10 +953,7 @@ void CGroundTruthMakerDlg::OnMouseMove(UINT nFlags, CPoint point)
 				for (int i = 0; i < NUM_AP && m_ptCurObject->valid; i++)
 				{
 					CRect debugRect = GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, originFrame);   //m_rectViewer => matVideoFrame
-																														/*debugRect.left += m_rectViewer.left;
-																														debugRect.top += m_rectViewer.right;
-																														debugRect.right += m_rectViewer.left;
-																														debugRect.bottom = m_rectViewer.right;*/
+
 					if (GetAdjustPointRegion(m_ptCurObject->boundingBox, (ADJUST_POINT)i, originFrame).PtInRect(relativePoint))  //m_ptCurObject->boundingBox =>originalRect, m_rectViewer => matVideoFrame
 					{																											//PtInRect(point) =>relativePoint
 						bOnAdjustablePoints = true;
@@ -1144,6 +1146,7 @@ void CGroundTruthMakerDlg::OnEnChangeEditId()
 	GetDlgItemText(IDC_EDIT_ID, strID);
 	m_nCurID = _ttoi(strID);
 	m_ptCurObject = m_cCurMetadata.GetObjectInfo(m_nCurID);
+	m_nCurrState = GUI_STATE_SET_BOX_LT;
 	this->UpdateObjectInfoField();
 	this->ShowFrame();
 }
@@ -1170,6 +1173,27 @@ BOOL CGroundTruthMakerDlg::PreTranslateMessage(MSG *pMsg)
 		case VK_SPACE:
 			Track();
 			break;
+
+		case 0x31:
+			OnClickedRadioBoxUsingKey(IDC_RADIO_BOX);
+			m_cSpinBtnCtrl.SetPos32(m_cSpinBtnCtrl.GetPos32() + 1);
+			break;
+		case 0x32:
+			OnClickedRadioBoxUsingKey(IDC_RADIO_HEAD);
+			break;
+		case 0x33:
+			OnClickedRadioBoxUsingKey(IDC_RADIO_L_HAND);
+			break;
+		case 0x34:
+			OnClickedRadioBoxUsingKey(IDC_RADIO_R_HAND);
+			break;
+		case 0x35:
+			OnClickedRadioBoxUsingKey(IDC_RADIO_L_FOOT);
+			break;
+		case 0x36:
+			OnClickedRadioBoxUsingKey(IDC_RADIO_R_FOOT);
+			break;
+
 		default:
 			// do nothing
 			break;
@@ -1279,16 +1303,31 @@ void CGroundTruthMakerDlg::CheckCorrectBoundingBox()
 	CString strStatic;
 	temp.x = m_ptCurObject->boundingBox.right;            //left가 right보다 크면 바꾸기 위한 임시저장소
 	temp.y = m_ptCurObject->boundingBox.bottom;             //bottom가 top보다 크면 바꾸기 위한 임시저장소
-	
+
 	m_ptCurObject->boundingBox.right = MAX(temp.x, m_ptCurObject->boundingBox.left);
 	m_ptCurObject->boundingBox.bottom = MAX(temp.y, m_ptCurObject->boundingBox.top);
 	m_ptCurObject->boundingBox.left = MIN(temp.x, m_ptCurObject->boundingBox.left);
 	m_ptCurObject->boundingBox.top = MIN(temp.y, m_ptCurObject->boundingBox.top);
-	
+
 	strStatic.Format(_T("(%d, %d, %d, %d)"),
 		m_ptCurObject->boundingBox.left,
 		m_ptCurObject->boundingBox.top,
 		m_ptCurObject->boundingBox.right,
 		m_ptCurObject->boundingBox.bottom);
 	SetDlgItemText(IDC_STATIC_BOX_INFO, strStatic);
+}
+
+
+void CGroundTruthMakerDlg::OnClickedRadioBoxUsingKey(int defNum)
+{
+	((CButton *)GetDlgItem(defNum))->SetCheck(true);
+	for (int i = IDC_RADIO_BOX; i <= IDC_RADIO_R_FOOT; i++)
+	{
+		if (i == defNum) { continue; }
+		((CButton*)GetDlgItem(i))->SetCheck(false);
+
+	}
+	UpdateData(TRUE);
+	m_nCurrState = m_nRadioButton == 0 ? GUI_STATE_SET_BOX_LT : GUI_STATE_SET_BODY_PART;
+	this->ShowFrame();
 }

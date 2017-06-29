@@ -70,9 +70,9 @@ class CGTMetadata
 {
 public:
 	CGTMetadata() : nFrameIndex(0), bGarbageDump(false) {}
-	void clear() 
-	{ 
-		this->vecObjects.clear(); 
+	void clear()
+	{
+		this->vecObjects.clear();
 		this->bGarbageDump = false;
 	}
 	void insert(CGTObjectInfo newObject);
@@ -141,6 +141,7 @@ protected:
 	void Track();
 	void InitBodyPointColor();
 	void CheckCorrectBoundingBox();
+	void OnClickedRadioBoxUsingKey(int defNum);
 
 	//---------------------------------------------------------------------
 	// VARIABLES
@@ -187,6 +188,5 @@ protected:
 	HCURSOR m_arrCursors[NUM_MCT];
 	MOUSE_CURSOR_TYPE m_arrApCursorTypes[NUM_AP];
 	GUI_STATE m_nCurrState;
-	GUI_STATE m_nNextState;	
-
+	GUI_STATE m_nNextState;
 };
