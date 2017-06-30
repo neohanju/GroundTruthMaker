@@ -155,6 +155,7 @@ protected:
 
 	HICON m_hIcon;
 	std::vector<COLORREF> pointColor;
+	std::vector<CGTObjectInfo> prevObjects;
 
 	// Video streaming related
 	CStatic m_csVideoFrame;

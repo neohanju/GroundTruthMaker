@@ -278,3 +278,4 @@ paket-files/
 /GroundTruthMaker/data/medium_000141.txt
 /GroundTruthMaker/data/medium_000140.txt
 /GroundTruthMaker/data/medium_000000.txt
+*.txt
