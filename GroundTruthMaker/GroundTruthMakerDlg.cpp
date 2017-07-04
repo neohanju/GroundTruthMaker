@@ -1226,6 +1226,7 @@ void CGroundTruthMakerDlg::OnClickedGo()
 void CGroundTruthMakerDlg::OnClickedButtonDelete()
 {
 	m_cCurMetadata.clear();
+	m_nCurID = 0;
 	m_ptCurObject = m_cCurMetadata.GetObjectInfo(m_nCurID);
 	m_bDataChanged = true;
 	m_nCurrState = GUI_STATE_SET_BOX_LT;
