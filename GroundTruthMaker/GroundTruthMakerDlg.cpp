@@ -186,25 +186,25 @@ bool CGTMetadata::writefile(const CString strPath)
 		{
 			if (vecObjects[i].valid) { newObjects.push_back(vecObjects[i]); }
 		}
-		vecObjects = newObjects;
+		//vecObjects = newObjects;
 
 		std::sort(newObjects.begin(), newObjects.end(), objectIDAscend);
 
-		outputFile << (int)vecObjects.size() << "\n";
-		for (int i = 0; i < (int)vecObjects.size(); i++)
+		outputFile << (int)newObjects.size() << "\n";
+		for (int i = 0; i < (int)newObjects.size(); i++)
 		{
-			if (!vecObjects[i].valid) { continue; }
-			outputFile << vecObjects[i].id << " ";
-			outputFile << vecObjects[i].category << " "
-				<< vecObjects[i].boundingBox.left << " "
-				<< vecObjects[i].boundingBox.top << " "
-				<< vecObjects[i].boundingBox.right << " "
-				<< vecObjects[i].boundingBox.bottom << " ";
+			if (!newObjects[i].valid) { continue; }
+			outputFile << newObjects[i].id << " ";
+			outputFile << newObjects[i].category << " "
+				<< newObjects[i].boundingBox.left << " "
+				<< newObjects[i].boundingBox.top << " "
+				<< newObjects[i].boundingBox.right << " "
+				<< newObjects[i].boundingBox.bottom << " ";
 			for (int j = 0; j < NUM_PARTS; j++)
 			{
 				outputFile
-					<< vecObjects[i].partPoints[j].x << " "
-					<< vecObjects[i].partPoints[j].y << " ";
+					<< newObjects[i].partPoints[j].x << " "
+					<< newObjects[i].partPoints[j].y << " ";
 			}
 			outputFile << std::endl;
 		}
@@ -1113,9 +1113,39 @@ void CGroundTruthMakerDlg::ReadMetadata()
 {
 	CFileFind Find;
 	CString strMetadataFilePath;
+	bool b_checkSameID = false;
+	prevObjects.clear();
+	for (int i = 0; i < (int)m_cCurMetadata.vecObjects.size(); i++)
+	{
+		if (m_cCurMetadata.vecObjects[i].valid) { prevObjects.push_back(m_cCurMetadata.vecObjects[i]); }
+	}
+
 	strMetadataFilePath.Format(_T("%s\\%s_%06d.txt"), m_strMetadataFileDir, m_strVideoName, m_nCurFrameIdx);
-	if (Find.FindFile(strMetadataFilePath))
+
+	if (Find.FindFile(strMetadataFilePath)) {
 		m_cCurMetadata.readfile(strMetadataFilePath);
+		/*if (m_cCurMetadata.vecObjects.size() < prevObjects.size()) {
+		for (int i = 0; i < (int)prevObjects.size(); i++)
+		{
+		for (int j = 0; j < (int)m_cCurMetadata.vecObjects.size(); j++)
+		{
+		if (m_cCurMetadata.vecObjects[j].id == prevObjects[i].id)
+		{
+		b_checkSameID = true;
+		continue;
+		}
+		}
+		if (!b_checkSameID)
+		{
+		m_cCurMetadata.vecObjects.push_back(prevObjects[i]);
+		m_bDataChanged = true;
+		}
+		b_checkSameID = false;
+		}
+		}*/
+
+	}
+
 }
 
 
@@ -1228,7 +1258,7 @@ void CGroundTruthMakerDlg::OnClickedButtonDelete()
 	m_cCurMetadata.clear();
 	m_nCurID = 0;
 	m_ptCurObject = m_cCurMetadata.GetObjectInfo(m_nCurID);
-	m_bDataChanged = true;
+	m_bDataChanged = false; //
 	m_nCurrState = GUI_STATE_SET_BOX_LT;
 	this->UpdateEventField();
 	this->UpdateObjectInfoField();
@@ -1248,38 +1278,61 @@ void CGroundTruthMakerDlg::OnClickedCheckEventGargage()
 //=========================================================================
 void CGroundTruthMakerDlg::Track()
 {
+	std::sort(m_cCurMetadata.vecObjects.begin(), m_cCurMetadata.vecObjects.end(), objectIDAscend);
 	this->SaveMetadata();
 
-	// initialize trackers
-	std::vector<KCFTracker> vecTrackers(0);
+	//// initialize trackers
+	//std::vector<KCFTracker> vecTrackers(0);
 
-	for (int objIdx = 0; objIdx < m_cCurMetadata.vecObjects.size(); objIdx++)
-	{
-		bool HOG = true;
-		bool FIXEDWINDOW = false;
-		bool MULTISCALE = true;
-		bool SILENT = true;
-		bool LAB = false;
+	//for (int objIdx = 0; objIdx < m_cCurMetadata.vecObjects.size(); objIdx++)
+	//{
+	//	bool HOG = true;
+	//	bool FIXEDWINDOW = false;
+	//	bool MULTISCALE = true;
+	//	bool SILENT = true;
+	//	bool LAB = false;
 
-		KCFTracker tracker(HOG, FIXEDWINDOW, MULTISCALE, LAB);
-		tracker.init(
-			CRect2CVRect(m_cCurMetadata.vecObjects[objIdx].boundingBox),
-			m_matVideoFrame);
-		vecTrackers.push_back(tracker);
-	}
+	//	KCFTracker tracker(HOG, FIXEDWINDOW, MULTISCALE, LAB);
+	//	tracker.init(
+	//		CRect2CVRect(m_cCurMetadata.vecObjects[objIdx].boundingBox),
+	//		m_matVideoFrame);
+	//	vecTrackers.push_back(tracker);
+	//}
+
+	bool HOG = true;
+	bool FIXEDWINDOW = false;
+	bool MULTISCALE = true;
+	bool SILENT = true;
+	bool LAB = false;
+	KCFTracker tracker(HOG, FIXEDWINDOW, MULTISCALE, LAB);
+	tracker.init(
+		CRect2CVRect(m_ptCurObject->boundingBox), //m_cCurMetadata.vecObjects[m_nCurID].boundingBox
+		m_matVideoFrame);
+
 
 	// proceed to the next frame
+	//int nPrevFrameIndex = m_nCurFrameIdx;
+	//this->ReadFrame(nPrevFrameIndex + 1, false);
+
+	//if (nPrevFrameIndex != m_nCurFrameIdx)  // if there is another frame 
+	//{
+	//	m_cCurMetadata.nFrameIndex = m_nCurFrameIdx;
+	//	for (int objIdx = 0; objIdx < vecTrackers.size(); objIdx++)
+	//	{
+	//		m_cCurMetadata.vecObjects[objIdx].boundingBox =
+	//			CVRect2CRect(vecTrackers[objIdx].update(m_matVideoFrame));
+	//	}
+
+	//}
+
 	int nPrevFrameIndex = m_nCurFrameIdx;
 	this->ReadFrame(nPrevFrameIndex + 1, false);
 
 	if (nPrevFrameIndex != m_nCurFrameIdx)  // if there is another frame 
 	{
 		m_cCurMetadata.nFrameIndex = m_nCurFrameIdx;
-		for (int objIdx = 0; objIdx < vecTrackers.size(); objIdx++)
-		{
-			m_cCurMetadata.vecObjects[objIdx].boundingBox =
-				CVRect2CRect(vecTrackers[objIdx].update(m_matVideoFrame));
-		}
+		m_cCurMetadata.vecObjects[m_nCurID].boundingBox =
+			CVRect2CRect(tracker.update(m_matVideoFrame));
 
 	}
 
