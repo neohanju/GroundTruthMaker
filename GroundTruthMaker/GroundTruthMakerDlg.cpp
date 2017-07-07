@@ -1114,36 +1114,11 @@ void CGroundTruthMakerDlg::ReadMetadata()
 	CFileFind Find;
 	CString strMetadataFilePath;
 	bool b_checkSameID = false;
-	prevObjects.clear();
-	for (int i = 0; i < (int)m_cCurMetadata.vecObjects.size(); i++)
-	{
-		if (m_cCurMetadata.vecObjects[i].valid) { prevObjects.push_back(m_cCurMetadata.vecObjects[i]); }
-	}
 
 	strMetadataFilePath.Format(_T("%s\\%s_%06d.txt"), m_strMetadataFileDir, m_strVideoName, m_nCurFrameIdx);
 
 	if (Find.FindFile(strMetadataFilePath)) {
 		m_cCurMetadata.readfile(strMetadataFilePath);
-		/*if (m_cCurMetadata.vecObjects.size() < prevObjects.size()) {
-		for (int i = 0; i < (int)prevObjects.size(); i++)
-		{
-		for (int j = 0; j < (int)m_cCurMetadata.vecObjects.size(); j++)
-		{
-		if (m_cCurMetadata.vecObjects[j].id == prevObjects[i].id)
-		{
-		b_checkSameID = true;
-		continue;
-		}
-		}
-		if (!b_checkSameID)
-		{
-		m_cCurMetadata.vecObjects.push_back(prevObjects[i]);
-		m_bDataChanged = true;
-		}
-		b_checkSameID = false;
-		}
-		}*/
-
 	}
 
 }
@@ -1258,7 +1233,7 @@ void CGroundTruthMakerDlg::OnClickedButtonDelete()
 	m_cCurMetadata.clear();
 	m_nCurID = 0;
 	m_ptCurObject = m_cCurMetadata.GetObjectInfo(m_nCurID);
-	m_bDataChanged = false; //
+	m_bDataChanged = true; //
 	m_nCurrState = GUI_STATE_SET_BOX_LT;
 	this->UpdateEventField();
 	this->UpdateObjectInfoField();
@@ -1306,7 +1281,7 @@ void CGroundTruthMakerDlg::Track()
 	bool LAB = false;
 	KCFTracker tracker(HOG, FIXEDWINDOW, MULTISCALE, LAB);
 	tracker.init(
-		CRect2CVRect(m_ptCurObject->boundingBox), //m_cCurMetadata.vecObjects[m_nCurID].boundingBox
+		CRect2CVRect(m_cCurMetadata.vecObjects[m_nCurID].boundingBox), //m_cCurMetadata.vecObjects[m_nCurID].boundingBox
 		m_matVideoFrame);
 
 
@@ -1324,6 +1299,7 @@ void CGroundTruthMakerDlg::Track()
 	//	}
 
 	//}
+	CGTObjectInfo buffinfo = m_cCurMetadata.vecObjects[m_nCurID];
 
 	int nPrevFrameIndex = m_nCurFrameIdx;
 	this->ReadFrame(nPrevFrameIndex + 1, false);
@@ -1331,8 +1307,15 @@ void CGroundTruthMakerDlg::Track()
 	if (nPrevFrameIndex != m_nCurFrameIdx)  // if there is another frame 
 	{
 		m_cCurMetadata.nFrameIndex = m_nCurFrameIdx;
+		
 		m_cCurMetadata.vecObjects[m_nCurID].boundingBox =
 			CVRect2CRect(tracker.update(m_matVideoFrame));
+		
+		for (int i = 0; i < NUM_PARTS;i++) {
+			m_cCurMetadata.vecObjects[m_nCurID].partPoints[i] =
+				buffinfo.partPoints[i];
+		}
+		m_cCurMetadata.vecObjects[m_nCurID].valid = true;
 
 	}
 
