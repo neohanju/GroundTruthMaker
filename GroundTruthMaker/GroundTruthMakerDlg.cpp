@@ -1202,6 +1202,19 @@ BOOL CGroundTruthMakerDlg::PreTranslateMessage(MSG *pMsg)
 			OnClickedRadioBoxUsingKey(IDC_RADIO_R_FOOT);
 			break;
 
+		case 0x44:
+			if (m_nRadioButton == 0)
+				m_cCurMetadata.vecObjects[m_nCurID].boundingBox = CRect(0, 0, 0, 0);
+
+			else
+				m_cCurMetadata.vecObjects[m_nCurID].partPoints[m_nRadioButton - 1] = CPoint(0, 0);
+
+			m_bDataChanged = true;
+			this->UpdateObjectInfoField();
+			this->ShowFrame();
+
+			break;
+
 		default:
 			// do nothing
 			break;
@@ -1307,10 +1320,10 @@ void CGroundTruthMakerDlg::Track()
 	if (nPrevFrameIndex != m_nCurFrameIdx)  // if there is another frame 
 	{
 		m_cCurMetadata.nFrameIndex = m_nCurFrameIdx;
-		
+
 		m_cCurMetadata.vecObjects[m_nCurID].boundingBox =
 			CVRect2CRect(tracker.update(m_matVideoFrame));
-		
+
 		for (int i = 0; i < NUM_PARTS;i++) {
 			m_cCurMetadata.vecObjects[m_nCurID].partPoints[i] =
 				buffinfo.partPoints[i];
